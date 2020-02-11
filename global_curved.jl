@@ -8,7 +8,8 @@ include("diagonal_sbp.jl")
 flatten_tuples(x) = reshape(collect(Iterators.flatten(x)), length(x[1]),
                             length(x))
 
-⊗(A,B) = kron(A, B)    # Defines the syntax meaning of ⊗
+⊗(A,B) = kron(A, B)     # Defines the syntax meaning of ⊗ as Kronecker Product
+                        # Equivalent form can be ⊗ = kron, this will also work
 
 const BC_DIRICHLET        = 1
 const BC_NEUMANN          = 2
