@@ -132,7 +132,7 @@ let
 
     # Dictionary to store the operators
     OPTYPE = typeof(locoperator(2, 8, 8))
-    lop = Dict{Int64, OPTYPE}()
+    lop = Dict{Int64, OPTYPE}() #lop Dict for storing operators
 
     # Loop over blocks and create local operators
     for e = 1:nelems

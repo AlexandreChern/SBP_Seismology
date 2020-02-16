@@ -91,15 +91,15 @@ function connectivityarrays(EToV, EToF)
   # EToS : Element to Unique Global Face Side
 
   FToE  = zeros(Int64, 2, nfaces)
-  FToLF = zeros(Int64, 2, nfaces)
+  FToLF = zeros(Int64, 2, nfaces) # LF local Face
   EToO  = Array{Bool,2}(undef, 4, nelems)
   EToS  = zeros(Int64, 4, nelems)
 
   # Local Face to Local Vertex map
   LFToLV = flatten_tuples(((1,3), (2, 4), (1,2), (3,4)))
   for e = 1:nelems
-    for lf = 1:4
-      gf = EToF[lf, e]
+    for lf = 1:4 # lf for local face
+      gf = EToF[lf, e] # gf for global face, not girl friend
       if FToE[1, gf] == 0
         @assert FToLF[1, gf] == 0
         FToE[1, gf] = e
