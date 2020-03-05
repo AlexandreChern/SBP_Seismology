@@ -7,7 +7,7 @@ let
   # mesh file side set type to actually boundary condition type
   bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
             BC_JUMP_INTERFACE]
-  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/2d_new.inp";
+  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/square_circle.inp";
                                                      bc_map = bc_map)
   # EToV defines the element by its vertices
   # EToF defines element by its four faces, in global face number
@@ -132,7 +132,7 @@ let
 
     # Dictionary to store the operators
     OPTYPE = typeof(locoperator(2, 8, 8))
-    lop = Dict{Int64, OPTYPE}() #lop Dict for storing operators
+    lop = Dict{Int64, OPTYPE}()
 
     # Loop over blocks and create local operators
     for e = 1:nelems

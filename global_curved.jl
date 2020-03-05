@@ -1,5 +1,10 @@
 using SparseArrays
 using LinearAlgebra
+if (typeof(Base.find_package("UnicodePlots")) == Nothing)
+    println("Package Unicode not installed")
+    using Pkg;
+    Pkg.add("UnicodePlots")
+end
 using UnicodePlots
 
 include("diagonal_sbp.jl")
@@ -7,9 +12,7 @@ include("diagonal_sbp.jl")
 # flatten tuples to arrays
 flatten_tuples(x) = reshape(collect(Iterators.flatten(x)), length(x[1]),
                             length(x))
-# The first parameter length(x[1]) returns the length of the tuple element
-# The second parameter length(x) returns the length of the complex tuple
-# Each element of the tuple is a subtuple
+
 ⊗(A,B) = kron(A, B)     # Defines the syntax meaning of ⊗ as Kronecker Product
                         # Equivalent form can be ⊗ = kron, this will also work
 
@@ -94,15 +97,15 @@ function connectivityarrays(EToV, EToF)
   # EToS : Element to Unique Global Face Side
 
   FToE  = zeros(Int64, 2, nfaces)
-  FToLF = zeros(Int64, 2, nfaces) # LF local Face
+  FToLF = zeros(Int64, 2, nfaces)
   EToO  = Array{Bool,2}(undef, 4, nelems)
   EToS  = zeros(Int64, 4, nelems)
 
   # Local Face to Local Vertex map
   LFToLV = flatten_tuples(((1,3), (2, 4), (1,2), (3,4)))
   for e = 1:nelems
-    for lf = 1:4 # lf for local face
-      gf = EToF[lf, e] # gf for global face, not girl friend
+    for lf = 1:4
+      gf = EToF[lf, e]
       if FToE[1, gf] == 0
         @assert FToLF[1, gf] == 0
         FToE[1, gf] = e
@@ -200,7 +203,7 @@ function create_metrics(pm, Nr, Ns,
   nx4 = nx4 ./ sJ4
   ny4 = ny4 ./ sJ4
 
-  # The structure below defines the return structure from the metrics constructor : Named Tuple
+
   (coord = (x,y),
    facecoord = ((xf1, xf2, xf3, xf4), (yf1, yf2, yf3, yf4)),
    crr = crr, css = css, crs = crs,
@@ -850,7 +853,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
   # {{{ Read in side set info
   FToB = Array{T, 1}(undef, numfaces)
   fill!(FToB, BC_LOCKED_INTERFACE)
-  linenum = SeekToSubstring(lines, "\\*ELSET") # What is the definition of SeekToSubstring function
+  linenum = SeekToSubstring(lines, "\\*ELSET")
   inp_to_zorder = [3,  2, 4, 1]
   while linenum > 0
     foo = split(lines[linenum], r"[^0-9]", keepempty=false)
