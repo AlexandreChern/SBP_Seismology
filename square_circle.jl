@@ -1,8 +1,9 @@
-include("global_curved.jl")
+include("global_curved.jl");
 
 let
   # SBP interior order
   SBPp   = 6
+
 
   # mesh file side set type to actually boundary condition type
   bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
