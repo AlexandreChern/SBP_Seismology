@@ -58,7 +58,7 @@ let
   #        face are oriented in the same way in physical memory or need to be
   #        rotated)
   # EToS : Element to Unique Global Face Side
-  #        (the i'th column of this stores whether an element face is on the
+  #        (the i'th column of this stores whether an element is on the
   #        plus side or minus side of the global face)
   (FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
 
