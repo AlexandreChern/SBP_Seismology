@@ -29,8 +29,6 @@ end
 
 verts
 
-EToO
+plot_connectivity(verts, EToV)
 
-
-
- plot_connectivity(verts, EToV)
+N1 = N0 = 16
