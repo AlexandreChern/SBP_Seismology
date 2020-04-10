@@ -216,7 +216,70 @@ FToE[:,:]
 lop[3]
 
 
-FToδStarts = bcstarts(FToB, FToE, FToLF, BC_JUMP_INTERFACE, Nr, Ns)
+FToδstarts = bcstarts(FToB, FToE, FToLF, BC_JUMP_INTERFACE, Nr, Ns)
 
 VNp = vstarts[nelems+1]-1
 λNp = FToλstarts[nfaces+1]-1
+δNp = FToδstarts[nfaces+1]-1
+
+
+B = assembleλmatrix(FToλstarts,vstarts,EToF,FToB,locfactors,D,FbarT)
+BF = cholesky(Symmetric(B))
+
+
+(bλ, λ, gδ) = (zeros(λNp), zeros(λNp),zeros(λNp))
+(Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
+
+δ = zeros(δNp)
+
+
+function read_inp_new(T,S,filename::String; bc_map=1:10000)
+    f = try
+        open(filename)
+    catch
+        error("InpRead cannot open \"$filename\" ")
+    end
+
+    lines = readlines(f)
+    close(f)
+
+    # {{{ Read in nodes
+    str = "NSET=ALLNODES"
+    linenum = SeekToSubstring(lines, str);
+    linenum > 0 || error("did not find: $str")
+    num_nodes = 0
+    for l in linenum+1:length(lines)
+        occursin(r"^\s*[0-9]*\s*,.*",lines[l]) ? num_nodes+= 1 : break
+    end
+    Vx = fill(S(NaN), num_nodes)
+    Vy = fill(S(NaN), num_nodes)
+    Vz = fill(S(NaN), num_nodes)
+
+    for l = linenum .+ (1:num_nodes)
+        node_data = split(lines[l], r"\s|,", keepempty=false)
+        (node_num, node_x, node_y, node_z) = try
+            (parse(T, node_data[1]),
+             parse(S, node_data[2]),
+             parse(S, node_data[3]),
+             parse(S, node_data[4]))
+        catch
+            error("cannot parse line $l: \"$(lines[l]) \"")
+        end
+        Vx[node_num] = node_x
+        Vy[node_num] = node_y
+        Vz[node_num] = node_z
+    end
+    # }}}
+
+    # {{{  #}}}
+
+    ([Vx Vy]')
+end
+
+
+read_inp_new(filename;kw...) = read_inp_new(Int64, Float64, filename; kw...) #syntax sugaring
+
+(verts) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
+
+
+verts

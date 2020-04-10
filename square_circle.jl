@@ -230,7 +230,8 @@ let
 
     # Build the (sparse) λ matrix using the schur complement and factor
     B = assembleλmatrix(FToλstarts, vstarts, EToF, FToB, locfactors, D, FbarT)
-    BF = cholesky(Symmetric(B))
+    BF = cholesky(Symmetric(B)) # again BF is not Boy Friend, but B factorization
+
 
     (bλ, λ, gδ) = (zeros(λNp), zeros(λNp), zeros(λNp))
     (Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
