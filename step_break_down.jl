@@ -272,7 +272,7 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     # }}}
 
     # {{{  Read in Elements
-    str = "CPS4"   # This is hardcode, need to do better
+    str = "CPS4"   # This is hardcoding, need to do better
     linenum = SeekToSubstring(lines, str);
     num_elm = 0
     while linenum > 0
@@ -337,11 +337,14 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     #}}}
 
     # {{{ Read in side set info
-
+    FToB = Array{T,1}(undef, numfaces)
+    fill!(FToB, BC_LOCKED_INTERFACE)
+    linenum = SeekToSubstring(lines,"\\*ELSET")
+    inp_to_zorder = [3, 2, 4, 1]
 
     #}}}
 
-    ([Vx Vy]',EToV,EToF)
+    ([Vx Vy]',EToV,EToF,FToB)
 end
 
 
@@ -353,3 +356,4 @@ read_inp_new(filename;kw...) = read_inp_new(Int64, Float64, filename; kw...) #sy
 verts
 EToV
 EToF
+FToB
