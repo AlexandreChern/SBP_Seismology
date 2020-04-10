@@ -271,15 +271,85 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     end
     # }}}
 
-    # {{{  #}}}
+    # {{{  Read in Elements
+    str = "CPS4"   # This is hardcode, need to do better
+    linenum = SeekToSubstring(lines, str);
+    num_elm = 0
+    while linenum > 0
+        for l = linenum .+ (1:length(lines))
+            occursin(r"^\s*[0-9]*\s*,.*",lines[l]) ? num_elm+=1 : break
+        end
+        linenum = SeekToSubstring(lines,str; first=linenum+=1)
+    end
+    num_elm > 0 || error("did not find any element")
+    #}}}
+    EToV = fill(T(0), 4, num_elm)
+    EToBlock = fill(T(0), num_elm)
+    linenum = SeekToSubstring(lines, str);
 
-    ([Vx Vy]')
+    while linenum > 0
+        foo = split(lines[linenum],r"[^0-9]", keepempty=false)
+        B = parse(T,foo[end])
+        for l = linenum .+ (1:num_elm)
+            elm_data = split(lines[l],r"\s|,", keepempty=false)
+            (elm_num, elm_v1, elm_v2, elm_v4, elm_v3) = try
+                (parse(T, elm_data[1]),
+                 parse(T, elm_data[2]),
+                 parse(T, elm_data[3]),
+                 parse(T, elm_data[4]),
+                 parse(T, elm_data[5]))
+            catch
+                break
+            end
+            elm_num -= 20  # This is hardcode, need better implementation
+            EToV[:,elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4]
+            EToBlock[elm_num] = B
+        end
+        linenum = SeekToSubstring(lines,str; first=linenum+1)
+    end
+
+    # {{{ Determine connectivity
+    EToF = fill(T(0), 4, num_elm)
+    VsToF = Dict{Tuple{Int64, Int64}, Int64}()
+    numfaces = 0
+    for e = 1:num_elm
+        for lf = 1:4
+            if lf == 1
+                Vs = (EToV[1,e],EToV[3,e])
+            elseif lf == 2
+                Vs = (EToV[2,e],EToV[4,e])
+            elseif lf == 3
+                Vs = (EToV[1,e],EToV[2,3])
+            elseif lf == 4
+                Vs = (EToV[3,e], EToV[4,e])
+            end
+            if Vs[1] > Vs[2]
+                Vs = (Vs[2], Vs[1])
+            end
+            if haskey(VsToF, Vs)
+                EToF[lf, e] = VsToF[Vs]
+            else
+                numfaces = numfaces + 1
+                EToF[lf, e] = VsToF[Vs] = numfaces
+            end
+        end
+    end
+    #}}}
+
+    # {{{ Read in side set info
+
+
+    #}}}
+
+    ([Vx Vy]',EToV,EToF)
 end
 
 
 read_inp_new(filename;kw...) = read_inp_new(Int64, Float64, filename; kw...) #syntax sugaring
 
-(verts) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
+(verts,EToV,EToF) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
 
 
 verts
+EToV
+EToF
