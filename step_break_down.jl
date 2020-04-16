@@ -256,7 +256,7 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     Vz = fill(S(NaN), num_nodes)
 
     for l = linenum .+ (1:num_nodes)
-        node_data = split(lines[l], r"\s|,", keepempty=false)
+        node_data = split(lines[l], r"\s|,", keepemp    ty=false)
         (node_num, node_x, node_y, node_z) = try
             (parse(T, node_data[1]),
              parse(S, node_data[2]),
@@ -272,7 +272,8 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     # }}}
 
     # {{{  Read in Elements
-    str = "CPS4"   # This is hardcoding, need to do better
+    str = "CPS4"   # This is hardcoding, nee
+    d to do better
     linenum = SeekToSubstring(lines, str);
     num_elm = 0
     while linenum > 0
