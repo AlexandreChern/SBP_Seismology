@@ -256,7 +256,7 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     Vz = fill(S(NaN), num_nodes)
 
     for l = linenum .+ (1:num_nodes)
-        node_data = split(lines[l], r"\s|,", keepemp    ty=false)
+        node_data = split(lines[l], r"\s|,", keepempty=false)
         (node_num, node_x, node_y, node_z) = try
             (parse(T, node_data[1]),
              parse(S, node_data[2]),
@@ -272,8 +272,7 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     # }}}
 
     # {{{  Read in Elements
-    str = "CPS4"   # This is hardcoding, nee
-    d to do better
+    str = "CPS4"   # This is hardcoding, need to do better
     linenum = SeekToSubstring(lines, str);
     num_elm = 0
     while linenum > 0
@@ -342,7 +341,37 @@ function read_inp_new(T,S,filename::String; bc_map=1:10000)
     fill!(FToB, BC_LOCKED_INTERFACE)
     linenum = SeekToSubstring(lines,"\\*ELSET")
     inp_to_zorder = [3, 2, 4, 1]
-
+    while linenum > 0
+      foo = split(lines[linenum], r"[^0-9]", keepempty=false)
+      (bc, face) = try
+        (parse(T, foo[1]),
+         parse(T, foo[2]))
+      catch
+        error("cannot parse line $linenum: \"$(lines[linenum])\" ")
+      end
+      bc = bc_map[bc]
+      face = inp_to_zorder[face]
+      for l = linenum+1:length(lines)
+        if !occursin(r"^\s*[0-9]+", lines[l])
+          break
+        end
+        elms = split(lines[l], r"\s|,", keepempty=false)
+        for elm in elms
+          elm = try
+            parse(T, elm)
+          catch
+            error("cannot parse line $linenum: \"$(lines[l])\" ")
+          end
+          if bc == 3
+            bc = BC_LOCKED_INTERFACE
+          end
+          FToB[EToF[face, elm]] = bc
+          @assert (bc == BC_DIRICHLET || bc == BC_NEUMANN ||
+                   bc == BC_LOCKED_INTERFACE || bc >= BC_JUMP_INTERFACE)
+        end
+      end
+      linenum = SeekToSubstring(lines, "\\*ELSET"; first=linenum+1)
+    end
     #}}}
 
     ([Vx Vy]',EToV,EToF,FToB)
@@ -351,7 +380,7 @@ end
 
 read_inp_new(filename;kw...) = read_inp_new(Int64, Float64, filename; kw...) #syntax sugaring
 
-(verts,EToV,EToF) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
+(verts,EToV,EToF,FToB) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
 
 
 verts
