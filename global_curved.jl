@@ -767,6 +767,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
   Vx = fill(S(NaN), num_nodes)
   Vy = fill(S(NaN), num_nodes)
   Vz = fill(S(NaN), num_nodes)
+  init_node_num = -1
   for l = linenum .+ (1:num_nodes)
     node_data = split(lines[l], r"\s|,", keepempty=false)
     (node_num, node_x, node_y, node_z) = try
@@ -778,6 +779,10 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
       error("cannot parse line $l: \"$(lines[l])\" ")
     end
 
+    if (init_node_num == -1)
+        init_node_num = node_num
+    end
+    node_num = node_num - init_node_num + 1
     Vx[node_num] = node_x
     Vy[node_num] = node_y
     Vz[node_num] = node_z
@@ -814,7 +819,8 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
       catch
         break
       end
-      EToV[:, elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4]
+
+      EToV[:, elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4] .- init_node_num
       EToBlock[elm_num] = B
     end
     linenum = SeekToSubstring(lines, str; first=linenum+1)
