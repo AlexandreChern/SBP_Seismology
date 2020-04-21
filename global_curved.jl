@@ -820,7 +820,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
         break
       end
 
-      EToV[:, elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4] .- init_node_num
+      EToV[:, elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4] .- init_node_num .+ 1
       EToBlock[elm_num] = B
     end
     linenum = SeekToSubstring(lines, str; first=linenum+1)

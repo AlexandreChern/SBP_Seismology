@@ -1,15 +1,12 @@
-include("global_curved.jl");
+include("global_curved.jl")
 
 let
   # SBP interior order
   SBPp   = 6
 
-
   # mesh file side set type to actually boundary condition type
   bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
             BC_JUMP_INTERFACE]
-  # (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/square_circle.inp";
-  #                                                    bc_map = bc_map)
   (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/nine_blocks.inp";
                                                      bc_map = bc_map)
   # EToV defines the element by its vertices
@@ -60,7 +57,7 @@ let
   #        face are oriented in the same way in physical memory or need to be
   #        rotated)
   # EToS : Element to Unique Global Face Side
-  #        (the i'th column of this stores whether an element is on the
+  #        (the i'th column of this stores whether an element face is on the
   #        plus side or minus side of the global face)
   (FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
 
@@ -135,7 +132,7 @@ let
 
     # Dictionary to store the operators
     OPTYPE = typeof(locoperator(2, 8, 8))
-    lop = Dict{Int64, OPTYPE}() # Be extra careful about the () here
+    lop = Dict{Int64, OPTYPE}()
 
     # Loop over blocks and create local operators
     for e = 1:nelems
@@ -232,8 +229,7 @@ let
 
     # Build the (sparse) λ matrix using the schur complement and factor
     B = assembleλmatrix(FToλstarts, vstarts, EToF, FToB, locfactors, D, FbarT)
-    BF = cholesky(Symmetric(B)) # again BF is not Boy Friend, but B factorization
-
+    BF = cholesky(Symmetric(B))
 
     (bλ, λ, gδ) = (zeros(λNp), zeros(λNp), zeros(λNp))
     (Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
