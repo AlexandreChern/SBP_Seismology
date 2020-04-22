@@ -10,7 +10,7 @@ let
             BC_JUMP_INTERFACE]
   # (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/square_circle.inp";
   #                                                    bc_map = bc_map)
-  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/nine_blocks.inp";
+  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/8_8_block.inp";
                                                      bc_map = bc_map)
   # EToV defines the element by its vertices
   # EToF defines element by its four faces, in global face number
