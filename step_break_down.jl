@@ -1,10 +1,11 @@
 include("global_curved.jl");
-
+using .Threads
+using BenchmarkTools
 SBPp   = 6
 
 bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
           BC_JUMP_INTERFACE]
-(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/square_circle.inp";
+(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/4_4_block.inp";
                                                    bc_map = bc_map)
 # EToV defines the element by its vertices
 # EToF defines element by its four faces, in global face number
@@ -132,7 +133,11 @@ Ns = EToN0[2, :] * (2^(lvl-1))
 OPTYPE = typeof(locoperator(2, 8, 8))
 lop = Dict{Int64, OPTYPE}() # Be extra
 
-for e = 1:nelems
+
+
+# Block 1, nthreads=6 @threads improved performance from 38.3 ms to 9.7 ms
+
+@btime for e = 1:nelems
     (x1, x2, x3, x4) = verts[1, EToV[:, e]]
     (y1, y2, y3, y4) = verts[2, EToV[:, e]]
 
@@ -200,10 +205,9 @@ for e = 1:nelems
     lop[e] = locoperator(SBPp, Nr[e], Ns[e], metrics, FToB[EToF[:, e]])
 end
 
-lvl == 1 && plot_blocks(lop)
+# lvl == 1 && plot_blocks(lop)
 
-(M, FbarT, D, vstarts, FToλstarts) =
-  LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
+(M, FbarT, D, vstarts, FToλstarts) = LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                        (x) -> cholesky(Symmetric(x)))
 
 
