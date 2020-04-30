@@ -1,5 +1,5 @@
 using .Threads
-include("global_curved.jl")
+include("global_curved_multithreading.jl")
 
 let
   # SBP interior order
@@ -137,7 +137,7 @@ let
     lop = Dict{Int64, OPTYPE}()
 
     # Loop over blocks and create local operators
-    for e = 1:nelems
+    @threads for e = 1:nelems
       # Get the element corners
       (x1, x2, x3, x4) = verts[1, EToV[:, e]]
       (y1, y2, y3, y4) = verts[2, EToV[:, e]]
@@ -236,7 +236,7 @@ let
     (bλ, λ, gδ) = (zeros(λNp), zeros(λNp), zeros(λNp))
     (Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
     δ = zeros(δNp)
-    for f = 1:nfaces
+    @threads for f = 1:nfaces
       if FToB[f] == BC_JUMP_INTERFACE
         (e1, e2) = FToE[:, f]
         (lf1, lf2) = FToLF[:, f]
@@ -266,7 +266,7 @@ let
       end
     end
 
-    for e = 1:nelems
+    @threads for e = 1:nelems
       gδe = ntuple(4) do lf
         f = EToF[lf, e]
         if EToO[lf, e]
@@ -288,7 +288,7 @@ let
     u[:] = -FbarT' * λ
     u[:] .= g .+ u
 
-    for e = 1:nelems
+    @threads for e = 1:nelems
       F = locfactors[e]
       (x, y) = lop[e].coord
       JH = lop[e].JH
