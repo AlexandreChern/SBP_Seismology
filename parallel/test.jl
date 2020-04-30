@@ -209,7 +209,7 @@ let
     end
 
     # If this is the first mesh level plot the mesh
-    lvl == 1 && plot_blocks(lop)
+    # lvl == 1 && plot_blocks(lop)
 
     #
     # Do some assemble of the global volume operators
