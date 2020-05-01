@@ -1,0 +1,445 @@
+include("global_curved.jl");
+using .Threads
+using BenchmarkTools
+SBPp   = 6
+
+bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
+          BC_JUMP_INTERFACE]
+(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/4_4_block.inp";
+                                                   bc_map = bc_map)
+# EToV defines the element by its vertices
+# EToF defines element by its four faces, in global face number
+# FToB defines whether face is Dirichlet (1), Neumann (2), interior jump (7)
+#      or just an interior interface (0)
+# EToDomain is 1 if element is inside circle; 2 otherwise
+
+# number of elements and faces
+(nelems, nfaces) = (size(EToV, 2), size(FToB, 1))
+@show (nelems, nfaces)
+
+# This is needed to fix up points that should be on the boundary of the
+# circle, but the mesh didn't quite put them there
+for v in 1:size(verts, 2)
+  x, y = verts[1, v], verts[2, v]
+  if abs(hypot(x,y) - 1) < 1e-5
+    Q = atan(y, x)
+    verts[1, v], verts[2, v] = cos(Q), sin(Q)
+  end
+end
+
+
+# Plot the original connectivity before mesh warping
+plot_connectivity(verts, EToV)
+
+# This is the base mesh size in each dimension
+N1 = N0 = 16
+
+# EToN0 is the base mesh size (e.g., before refinement)
+EToN0 = zeros(Int64, 2, nelems)
+EToN0[1, :] .= N0
+EToN0[2, :] .= N1
+
+@assert typeof(EToV) == Array{Int, 2} && size(EToV) == (4, nelems)
+@assert typeof(EToF) == Array{Int, 2} && size(EToF) == (4, nelems)
+@assert maximum(maximum(EToF)) == nfaces
+
+# Determine secondary arrays
+# FToE : Unique Global Face to Element Number
+#        (the i'th column of this stores the element numbers that share the
+#        global face number i)
+# FToLF: Unique Global Face to Element local face number
+#        (the i'th column of this stores the element local face numbers that
+#        shares the global face number i)
+# EToO : Element to Unique Global Faces Orientation
+#        (the i'th column of this stores the whether the element and global
+#        face are oriented in the same way in physical memory or need to be
+#        rotated)
+# EToS : Element to Unique Global Face Side
+#        (the i'th column of this stores whether an element is on the
+#        plus side or minus side of the global face)
+(FToE, FToLF, EToO, EToS) = connectivityarrays(EToV, EToF)
+
+# Exact solution
+Lx = maximum(verts[1,:])
+Ly = maximum(abs.(verts[2,:]))
+(kx, ky) = (2*π / Lx, 4*π / Ly)
+vex(x,y,e) = begin
+  if EToDomain[e] == 1
+    return cos.(kx * x) .* cosh.(ky * y)
+  elseif EToDomain[e] == 2
+    return 10 .+ cos.(kx * x) .* cosh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+vex_x(x,y,e) = begin
+  if EToDomain[e] == 1
+    return -kx * sin.(kx * x) .* cosh.(ky * y)
+  elseif EToDomain[e] == 2
+    return -kx * sin.(kx * x) .* cosh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+vex_y(x,y,e) = begin
+  if EToDomain[e] == 1
+    return ky * cos.(kx * x) .* sinh.(ky * y)
+  elseif EToDomain[e] == 2
+    return ky * cos.(kx * x) .* sinh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+vex_xx(x,y,e) = begin
+  if EToDomain[e] == 1
+    return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
+  elseif EToDomain[e] == 2
+    return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+vex_xy(x,y,e) = begin
+  if EToDomain[e] == 1
+    return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
+  elseif EToDomain[e] == 2
+    return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+vex_yy(x,y,e) = begin
+  if EToDomain[e] == 1
+    return ky^2 * cos.(kx * x) .* cosh.(ky * y)
+  elseif EToDomain[e] == 2
+    return ky^2 * cos.(kx * x) .* cosh.(ky * y)
+  else
+    error("invalid block")
+  end
+end
+
+ϵ = zeros(4)
+
+lvl = 1
+
+Nr = EToN0[1, :] * (2^(lvl-1))
+Ns = EToN0[2, :] * (2^(lvl-1))
+
+#
+# Build the local volume operators
+#
+
+# Dictionary to store the operators
+OPTYPE = typeof(locoperator(2, 8, 8))
+lop = Dict{Int64, OPTYPE}() # Be extra
+
+
+
+# Block 1, nthreads=6 @threads improved performance from 38.3 ms to 9.7 ms
+
+@btime @threads for e = 1:nelems
+    (x1, x2, x3, x4) = verts[1, EToV[:, e]]
+    (y1, y2, y3, y4) = verts[2, EToV[:, e]]
+
+    # Initialize the block transformations as transfinite between the corners
+    ex = [(α) -> x1 * (1 .- α) / 2 + x3 * (1 .+ α) / 2,
+          (α) -> x2 * (1 .- α) / 2 + x4 * (1 .+ α) / 2,
+          (α) -> x1 * (1 .- α) / 2 + x2 * (1 .+ α) / 2,
+          (α) -> x3 * (1 .- α) / 2 + x4 * (1 .+ α) / 2]
+    exα = [(α) -> -x1 / 2 + x3 / 2,
+           (α) -> -x2 / 2 + x4 / 2,
+           (α) -> -x1 / 2 + x2 / 2,
+           (α) -> -x3 / 2 + x4 / 2]
+    ey = [(α) -> y1 * (1 .- α) / 2 + y3 * (1 .+ α) / 2,
+          (α) -> y2 * (1 .- α) / 2 + y4 * (1 .+ α) / 2,
+          (α) -> y1 * (1 .- α) / 2 + y2 * (1 .+ α) / 2,
+          (α) -> y3 * (1 .- α) / 2 + y4 * (1 .+ α) / 2]
+    eyα = [(α) -> -y1 / 2 + y3 / 2,
+           (α) -> -y2 / 2 + y4 / 2,
+           (α) -> -y1 / 2 + y2 / 2,
+           (α) -> -y3 / 2 + y4 / 2]
+
+    # For blocks on the circle, put in the curved edge transform
+    if FToB[EToF[1, e]] == BC_JUMP_INTERFACE
+      error("curved face 1 not implemented yet")
+    end
+    if FToB[EToF[2, e]] == BC_JUMP_INTERFACE
+      error("curved face 2 not implemented yet")
+    end
+    if FToB[EToF[3, e]] == BC_JUMP_INTERFACE
+      Q1 = atan(y1, x1)
+      Q2 = atan(y2, x2)
+      if !(-π/2 < Q1 - Q2 < π/2)
+        Q2 -= sign(Q2) * 2 * π
+      end
+      ex[3] = (α) -> cos.(Q1 * (1 .- α) / 2 + Q2 * (1 .+ α) / 2)
+      ey[3] = (α) -> sin.(Q1 * (1 .- α) / 2 + Q2 * (1 .+ α) / 2)
+      β3 = (Q2 - Q1) / 2
+      exα[3] = (α) -> -β3 .* sin.(Q1 * (1 .- α) / 2 + Q2 * (1 .+ α) / 2)
+      eyα[3] = (α) -> +β3 .* cos.(Q1 * (1 .- α) / 2 + Q2 * (1 .+ α) / 2)
+    end
+    if FToB[EToF[4, e]] == BC_JUMP_INTERFACE
+      Q3 = atan(y3, x3)
+      Q4 = atan(y4, x4)
+      if !(-π/2 < Q3 - Q4 < π/2)
+        error("curved face 4 angle correction not implemented yet")
+      end
+      ex[4] = (α) -> cos.(Q3 * (1 .- α) / 2 + Q4 * (1 .+ α) / 2)
+      ey[4] = (α) -> sin.(Q3 * (1 .- α) / 2 + Q4 * (1 .+ α) / 2)
+      β4 = (Q4 - Q3) / 2
+      exα[4] = (α) -> -β4 .* sin.(Q3 * (1 .- α) / 2 + Q4 * (1 .+ α) / 2)
+      eyα[4] = (α) -> +β4 .* cos.(Q3 * (1 .- α) / 2 + Q4 * (1 .+ α) / 2)
+    end
+
+    xt(r,s) = transfinite_blend(ex[1], ex[2], ex[3], ex[4],
+                                exα[1], exα[2], exα[3], exα[4],
+                                r, s)
+    yt(r,s) = transfinite_blend(ey[1], ey[2], ey[3], ey[4],
+                                eyα[1], eyα[2], eyα[3], eyα[4],
+                                r, s)
+
+
+    metrics = create_metrics(SBPp, Nr[e], Ns[e], xt, yt)
+
+    # Build local operators
+    lop[e] = locoperator(SBPp, Nr[e], Ns[e], metrics, FToB[EToF[:, e]])
+end
+
+# lvl == 1 && plot_blocks(lop)
+
+(M, FbarT, D, vstarts, FToλstarts) = LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
+                       (x) -> cholesky(Symmetric(x)))
+
+
+@show lvl
+
+locfactors = M.F
+
+FToE[:,:]
+
+lop[3]
+
+
+FToδstarts = bcstarts(FToB, FToE, FToLF, BC_JUMP_INTERFACE, Nr, Ns)
+
+VNp = vstarts[nelems+1]-1
+λNp = FToλstarts[nfaces+1]-1
+δNp = FToδstarts[nfaces+1]-1
+
+
+B = assembleλmatrix(FToλstarts,vstarts,EToF,FToB,locfactors,D,FbarT)
+BF = cholesky(Symmetric(B))
+
+
+(bλ, λ, gδ) = (zeros(λNp), zeros(λNp),zeros(λNp))
+(Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
+
+δ = zeros(δNp)
+
+
+function read_inp_new(T,S,filename::String; bc_map=1:10000)
+    f = try
+        open(filename)
+    catch
+        error("InpRead cannot open \"$filename\" ")
+    end
+
+    lines = readlines(f)
+    close(f)
+
+    # {{{ Read in nodes
+    str = "NSET=ALLNODES"
+    linenum = SeekToSubstring(lines, str);
+    linenum > 0 || error("did not find: $str")
+    num_nodes = 0
+    for l in linenum+1:length(lines)
+        occursin(r"^\s*[0-9]*\s*,.*",lines[l]) ? num_nodes+= 1 : break
+    end
+    Vx = fill(S(NaN), num_nodes)
+    Vy = fill(S(NaN), num_nodes)
+    Vz = fill(S(NaN), num_nodes)
+
+    for l = linenum .+ (1:num_nodes)
+        node_data = split(lines[l], r"\s|,", keepempty=false)
+        (node_num, node_x, node_y, node_z) = try
+            (parse(T, node_data[1]),
+             parse(S, node_data[2]),
+             parse(S, node_data[3]),
+             parse(S, node_data[4]))
+        catch
+            error("cannot parse line $l: \"$(lines[l]) \"")
+        end
+        Vx[node_num] = node_x
+        Vy[node_num] = node_y
+        Vz[node_num] = node_z
+    end
+    # }}}
+
+    # {{{  Read in Elements
+    str = "CPS4"   # This is hardcoding, need to do better
+    linenum = SeekToSubstring(lines, str);
+    num_elm = 0
+    while linenum > 0
+        for l = linenum .+ (1:length(lines))
+            occursin(r"^\s*[0-9]*\s*,.*",lines[l]) ? num_elm+=1 : break
+        end
+        linenum = SeekToSubstring(lines,str; first=linenum+=1)
+    end
+    num_elm > 0 || error("did not find any element")
+    #}}}
+    EToV = fill(T(0), 4, num_elm)
+    EToBlock = fill(T(0), num_elm)
+    linenum = SeekToSubstring(lines, str);
+
+    while linenum > 0
+        foo = split(lines[linenum],r"[^0-9]", keepempty=false)
+        B = parse(T,foo[end])
+        for l = linenum .+ (1:num_elm)
+            elm_data = split(lines[l],r"\s|,", keepempty=false)
+            (elm_num, elm_v1, elm_v2, elm_v4, elm_v3) = try
+                (parse(T, elm_data[1]),
+                 parse(T, elm_data[2]),
+                 parse(T, elm_data[3]),
+                 parse(T, elm_data[4]),
+                 parse(T, elm_data[5]))
+            catch
+                break
+            end
+            elm_num -= 20  # This is hardcode, need better implementation
+            EToV[:,elm_num] = [elm_v1, elm_v2, elm_v3, elm_v4]
+            EToBlock[elm_num] = B
+        end
+        linenum = SeekToSubstring(lines,str; first=linenum+1)
+    end
+
+    # {{{ Determine connectivity
+    EToF = fill(T(0), 4, num_elm)
+    VsToF = Dict{Tuple{Int64, Int64}, Int64}()
+    numfaces = 0
+    for e = 1:num_elm
+        for lf = 1:4
+            if lf == 1
+                Vs = (EToV[1,e],EToV[3,e])
+            elseif lf == 2
+                Vs = (EToV[2,e],EToV[4,e])
+            elseif lf == 3
+                Vs = (EToV[1,e],EToV[2,3])
+            elseif lf == 4
+                Vs = (EToV[3,e], EToV[4,e])
+            end
+            if Vs[1] > Vs[2]
+                Vs = (Vs[2], Vs[1])
+            end
+            if haskey(VsToF, Vs)
+                EToF[lf, e] = VsToF[Vs]
+            else
+                numfaces = numfaces + 1
+                EToF[lf, e] = VsToF[Vs] = numfaces
+            end
+        end
+    end
+    #}}}
+
+    # {{{ Read in side set info
+    FToB = Array{T,1}(undef, numfaces)
+    fill!(FToB, BC_LOCKED_INTERFACE)
+    linenum = SeekToSubstring(lines,"\\*ELSET")
+    inp_to_zorder = [3, 2, 4, 1]
+    while linenum > 0
+      foo = split(lines[linenum], r"[^0-9]", keepempty=false)
+      (bc, face) = try
+        (parse(T, foo[1]),
+         parse(T, foo[2]))
+      catch
+        error("cannot parse line $linenum: \"$(lines[linenum])\" ")
+      end
+      bc = bc_map[bc]
+      face = inp_to_zorder[face]
+      for l = linenum+1:length(lines)
+        if !occursin(r"^\s*[0-9]+", lines[l])
+          break
+        end
+        elms = split(lines[l], r"\s|,", keepempty=false)
+        for elm in elms
+          elm = try
+            parse(T, elm)
+          catch
+            error("cannot parse line $linenum: \"$(lines[l])\" ")
+          end
+          if bc == 3
+            bc = BC_LOCKED_INTERFACE
+          end
+          FToB[EToF[face, elm]] = bc
+          @assert (bc == BC_DIRICHLET || bc == BC_NEUMANN ||
+                   bc == BC_LOCKED_INTERFACE || bc >= BC_JUMP_INTERFACE)
+        end
+      end
+      linenum = SeekToSubstring(lines, "\\*ELSET"; first=linenum+1)
+    end
+    #}}}
+
+    ([Vx Vy]',EToV,EToF,FToB)
+end
+
+
+read_inp_new(filename;kw...) = read_inp_new(Int64, Float64, filename; kw...) #syntax sugaring
+
+(verts,EToV,EToF,FToB) = read_inp_new("meshes/2d_new.inp",bc_map=bc_map)
+
+
+verts
+EToV
+EToF
+FToB
+
+
+nelems = length(lop)
+nfaces = length(FToB)
+Nλp = zeros(Int64, nfaces)
+FToλstarts = Array{Int64, 1}(undef, nfaces + 1)
+FToλstarts[1] = 1
+IT = Array{Int64,1}(undef,0)
+JT = Array{Int64,1}(undef,0)
+VT = Array{Float64,1}(undef,0)
+VD = Array{Float64,1}(undef,0)
+
+for f = 1:nfaces
+  if FToB[f] == BC_DIRICHLET || FToB[f] == BC_NEUMANN
+    FToλstarts[f+1] = FToλstarts[f]
+    continue
+  end
+  (em, ep) = FToE[:, f]
+  (fm, fp) = FToLF[:, f]
+  Nλp[f] = (fm <= 2 ? Ns[em]+1 : Nr[em]+1)
+  @assert Nλp[f] == (fp <= 2 ? Ns[ep]+1 : Nr[ep]+1)
+  FToλstarts[f+1] = FToλstarts[f] + Nλp[f]
+
+  @assert EToO[fm, em] && EToS[fm, em] == 1
+  Fm = lop[em].F[fm]
+  # swap I and J to get transpose
+  (Je, Ie, Ve) = findnz(Fm)
+  IT = [IT; Ie .+ (FToλstarts[f] - 1)]
+  JT = [JT; Je .+ (vstarts[em] - 1)]
+  VT = [VT; Ve]
+
+
+  @assert EToS[fp, ep] == 2
+  Fp = lop[ep].F[fp]
+  # swap I and J to get transpose
+  (Je, Ie, Ve) = findnz(Fp)
+  # if element and face orientation do not match, then flip
+  if EToO[fp, ep]
+    IT = [IT; Ie .+ (FToλstarts[f] - 1)]
+    τm = Vector(diag(lop[em].τ[fm]))
+    τp = Vector(diag(lop[ep].τ[fp]))
+  else
+    IT = [IT; FToλstarts[f+1] .- Ie]
+    τm = Vector(diag(lop[em].τ[fm]))
+    τp = Vector(diag(rot180(lop[ep].τ[fp])))
+  end
+  JT = [JT; Je .+ (vstarts[ep] - 1)]
+  VT = [VT; Ve]
+
+  Hf = Vector(diag(lop[em].Hf[fm]))
+  VD = [VD; Hf .* (τm + τp)]
+end

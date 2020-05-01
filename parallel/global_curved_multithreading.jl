@@ -503,7 +503,7 @@ end
 #}}}
 
 #{{{ gloλoperator: Build the trace operators
-function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
+function threaded_gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
   nelems = length(lop)
   nfaces = length(FToB)
   Nλp = zeros(Int64, nfaces)
@@ -513,7 +513,7 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
   JT = Array{Int64,1}(undef,0)
   VT = Array{Float64,1}(undef,0)
   VD = Array{Float64,1}(undef,0)
-  for f = 1:nfaces
+  @threads for f = 1:nfaces
     if FToB[f] == BC_DIRICHLET || FToB[f] == BC_NEUMANN
       FToλstarts[f+1] = FToλstarts[f]
       continue
@@ -532,6 +532,7 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
     JT = [JT; Je .+ (vstarts[em] - 1)]
     VT = [VT; Ve]
 
+    @sync
     @assert EToS[fp, ep] == 2
     Fp = lop[ep].F[fp]
     # swap I and J to get transpose
@@ -551,7 +552,6 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
 
     Hf = Vector(diag(lop[em].Hf[fm]))
     VD = [VD; Hf .* (τm + τp)]
-
   end
   λNp = FToλstarts[nfaces+1]-1
   VNp = vstarts[nelems+1]-1
@@ -654,10 +654,10 @@ function SBPLocalOperator1(lop, Nr, Ns, factorization)
 end
 #}}}
 
-function LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
+function threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                               factorization)
   M = SBPLocalOperator1(lop, Nr, Ns, factorization)
-  (FToλstarts, FbarT, D) = gloλoperator(lop, M.offset, FToB, FToE, FToLF, EToO,
+  (FToλstarts, FbarT, D) = threaded_gloλoperator(lop, M.offset, FToB, FToE, FToLF, EToO,
                                         EToS, Nr, Ns)
   (M, FbarT, D, M.offset, FToλstarts)
 end
