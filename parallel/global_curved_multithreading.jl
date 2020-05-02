@@ -513,7 +513,7 @@ function threaded_gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr,
   JT = Array{Int64,1}(undef,0)
   VT = Array{Float64,1}(undef,0)
   VD = Array{Float64,1}(undef,0)
-  @threads for f = 1:nfaces
+  for f = 1:nfaces
     if FToB[f] == BC_DIRICHLET || FToB[f] == BC_NEUMANN
       FToλstarts[f+1] = FToλstarts[f]
       continue
@@ -532,7 +532,6 @@ function threaded_gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr,
     JT = [JT; Je .+ (vstarts[em] - 1)]
     VT = [VT; Ve]
 
-    @sync
     @assert EToS[fp, ep] == 2
     Fp = lop[ep].F[fp]
     # swap I and J to get transpose
@@ -652,6 +651,44 @@ function SBPLocalOperator1(lop, Nr, Ns, factorization)
 
   SBPLocalOperator1{Float64, FTYPE}(vstarts, VH, X, Y, E, factors)
 end
+
+
+
+function threaded_SBPLocalOperator1(lop, Nr, Ns, factorization)
+  nelems = length(lop)
+  vstarts = Array{Int64, 1}(undef, nelems + 1)
+  vstarts[1] = 1
+  Np = Array{Int64, 1}(undef, nelems)
+  VH = Array{Float64,1}(undef,0)
+  X = Array{Float64,1}(undef,0)
+  Y = Array{Float64,1}(undef,0)
+  E = Array{Int64,1}(undef,0)
+  FTYPE = typeof(factorization(sparse([1],[1],[1.0])))
+  factors = Array{FTYPE, 1}(undef, nelems)
+  @threads for e = 1:nelems
+    # Fill arrays to build global sparse matrix
+    Np[e] = (Nr[e]+1)*(Ns[e]+1)
+    vstarts[e+1] = vstarts[e] + Np[e]
+
+    # Global "mass" matrix
+    JH = lop[e].JH
+    VH = [VH;Vector(diag(JH))]
+
+    # global coordinates and element number array (needed for jump)
+    (x,y) = lop[e].coord
+    X = [X;x[:]]
+    Y = [Y;y[:]]
+    E = [E;e * ones(Int64, Np[e])]
+
+    factors[e] = factorization(lop[e].M̃)
+  end
+  VNp = vstarts[nelems+1]-1 # total number of volume points
+
+  SBPLocalOperator1{Float64, FTYPE}(vstarts, VH, X, Y, E, factors)
+end
+
+
+
 #}}}
 
 function threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
