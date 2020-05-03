@@ -236,7 +236,7 @@ let
     (bλ, λ, gδ) = (zeros(λNp), zeros(λNp), zeros(λNp))
     (Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
     δ = zeros(δNp)
-    @threads for f = 1:nfaces
+    for f = 1:nfaces
       if FToB[f] == BC_JUMP_INTERFACE
         (e1, e2) = FToE[:, f]
         (lf1, lf2) = FToLF[:, f]
@@ -292,7 +292,7 @@ let
       F = locfactors[e]
       (x, y) = lop[e].coord
       JH = lop[e].JH
-
+      start = time()
       @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
       #=
       ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,

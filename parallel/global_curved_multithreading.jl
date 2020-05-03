@@ -724,8 +724,76 @@ function LocalToGLobalRHS!(b, g, gδ, u, M, FbarT, vstarts)
   @. b = gδ - b
 end
 
+function threaded_LocalToGLobalRHS!(b, g, gδ, u, M, FbarT, vstarts)
+  @threads for e = 1:length(M)
+    @views u[vstarts[e]:(vstarts[e+1]-1)] = (M[e] \
+                                             g[vstarts[e]:(vstarts[e+1]-1)]) # It does back slash here again
+  end
+  mul!(b, FbarT, u)
+  @. b = gδ - b
+end
+
+
 #{{{ assembleλmatrix: Schur complement system
 function assembleλmatrix(FToλstarts, vstarts, EToF, FToB, F, D, FbarT)
+  nfaces = length(FToλstarts)-1
+  nelems = length(vstarts)-1
+  λNp = FToλstarts[nfaces+1]-1
+  sz = λNp
+
+  for e = 1:nelems
+    lλs = Array{Int64, 1}(undef, 4)
+    for lf = 1:4
+      f = EToF[lf,e]
+      lλs[lf] = FToλstarts[f+1] - FToλstarts[f]
+    end
+    for lf = 1:4
+      sz += lλs[lf]*sum(lλs)
+    end
+  end
+  Ie = Array{Int64, 1}(undef, sz)
+  Je = Array{Int64, 1}(undef, sz)
+  Ve = Array{Float64, 1}(undef, sz)
+  Ie[1:λNp] = 1:λNp
+  Je[1:λNp] = 1:λNp
+  Ve[1:λNp] = D
+  offset = λNp
+  Fbar = FbarT'
+  for e = 1:nelems
+    # println((e, nelems))
+    vrng = vstarts[e]:(vstarts[e+1]-1)
+    for lf = 1:4
+      f = EToF[lf,e]
+      if FToB[f] == BC_LOCKED_INTERFACE || FToB[f] >= BC_JUMP_INTERFACE
+        λrng = FToλstarts[f]:(FToλstarts[f+1]-1)
+        B = -(Matrix(F[e]' \ Fbar[vrng, λrng])) # This is where backslash happens
+        for lf2 = 1:4
+          f2 = EToF[lf2,e]
+          if FToB[f2] == BC_LOCKED_INTERFACE || FToB[f2] >= BC_JUMP_INTERFACE
+            λrng2 = FToλstarts[f2]:(FToλstarts[f2+1]-1)
+            C = -(FbarT[λrng2, vrng] * B)
+            λblck = λrng*ones(Int64, 1, length(λrng2))
+            λblck2 = ones(Int64, length(λrng), 1) * λrng2'
+            last = length(λrng) * length(λrng2)
+            Ie[offset.+(1:last)] = λblck[:]
+            Je[offset.+(1:last)] = λblck2[:]
+            Ve[offset.+(1:last)] = -C'[:]
+            offset += last
+          end
+        end
+      end
+    end
+  end
+  @assert offset == sz
+  B = sparse(Ie, Je, Ve, λNp, λNp)
+  @assert B ≈ B'
+  # println((λNp * λNp, nnz(B), nnz(B) / λNp^2))
+  B
+end
+
+
+#{{{ assembleλmatrix: Schur complement system
+function threaded_assembleλmatrix(FToλstarts, vstarts, EToF, FToB, F, D, FbarT)
   nfaces = length(FToλstarts)-1
   nelems = length(vstarts)-1
   λNp = FToλstarts[nfaces+1]-1

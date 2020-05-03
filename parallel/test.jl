@@ -8,7 +8,7 @@ let
   # mesh file side set type to actually boundary condition type
   bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
             BC_JUMP_INTERFACE]
-  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/4_4_block.inp";
+  (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/8_8_block.inp";
                                                      bc_map = bc_map)
   # EToV defines the element by its vertices
   # EToF defines element by its four faces, in global face number
