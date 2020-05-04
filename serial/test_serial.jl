@@ -7,6 +7,7 @@ let
   n_block = 8
   # SBP interior order
   SBPp   = 6
+  num_of_lvls = 5
   input_file_name =  String((Symbol(n_block,"_",n_block,"_block.inp")))
   output_file_name =  String((Symbol(n_block,"_",n_block,"_p_",SBPp,"_output.txt")))
   fileio = open(output_file_name,"w")
@@ -128,7 +129,7 @@ let
     end
   end
 
-  ϵ = zeros(4)
+  ϵ = zeros(num_of_lvls)
   for lvl = 1:length(ϵ)
     start = time()
     # Set up the local grid dimensions
