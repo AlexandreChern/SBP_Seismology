@@ -690,6 +690,14 @@ end
 
 
 #}}}
+function LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
+                              factorization)
+  M = SBPLocalOperator1(lop, Nr, Ns, factorization)
+  (FToλstarts, FbarT, D) = threaded_gloλoperator(lop, M.offset, FToB, FToE, FToLF, EToO,
+                                        EToS, Nr, Ns)
+  (M, FbarT, D, M.offset, FToλstarts)
+end
+
 
 function threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                               factorization)
