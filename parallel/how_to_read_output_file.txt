@@ -1,0 +1,9 @@
+The order of the digits in output file input_file_name
+1. block_size
+Eg: 2_2 means 2 by 2
+
+2. SBP accuracy order
+eg  p_6 means SBPp = 6
+
+3. month_day_hour_minute
+eg 5_5_11_1 means May the fifth, 11:01 AM
