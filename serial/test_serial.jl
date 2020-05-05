@@ -4,10 +4,10 @@ include("global_curved.jl")
 
 let
   # number of blocks in each side
-  n_block = 8
+  n_block = 4
   # SBP interior order
   SBPp   = 6
-  num_of_lvls = 5
+  num_of_lvls = 6
   current_time = now()
   string_time =  String((Symbol("_",Dates.month(current_time),'_',Dates.day(current_time),'_',Dates.hour(current_time),'_',Dates.minute(current_time))))
   input_file_name =  String((Symbol(n_block,"_",n_block,"_block.inp")))
