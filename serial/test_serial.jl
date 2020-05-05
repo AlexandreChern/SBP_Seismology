@@ -312,10 +312,10 @@ let
                                                vex(x[:], y[:], e))
       ϵ[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
     end
+    elapsed = time() - start
     ϵ[lvl] = sqrt(ϵ[lvl])
     @show (lvl, ϵ[lvl])
     write(fileio,string((lvl,ϵ[lvl])) * "\n")
-    elapsed = time() - start
     println("Time elapsed for lvl $lvl = $elapsed")
     write(fileio,"Time elapsed for lvl $lvl = $elapsed\n")
     # write()
