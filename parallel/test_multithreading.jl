@@ -5,7 +5,7 @@ include("global_curved_multithreading.jl")
 
 let
   # number of blocks in each side
-  n_block = 2
+  n_block = 4
   # SBP interior order
   SBPp   = 6
   num_of_lvls = 6
