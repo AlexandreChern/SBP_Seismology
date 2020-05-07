@@ -5,7 +5,7 @@ include("global_curved_multithreading.jl")
 
 let
     # number of blocks in each side
-    n_block = 4
+    n_block = 2
     # SBP interior order
     SBPp   = 6
     num_of_lvls = 4
@@ -17,10 +17,8 @@ let
 
 
     # mesh file side set type to actually boundary condition type
-    bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
-                BC_JUMP_INTERFACE]
-    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/" * input_file_name;
-                                                     bc_map = bc_map)
+    bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,BC_JUMP_INTERFACE]
+    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/" * input_file_name;bc_map = bc_map)
     # EToV defines the element by its vertices
     # EToF defines element by its four faces, in global face number
     # FToB defines whether face is Dirichlet (1), Neumann (2), interior jump (7)
@@ -133,6 +131,7 @@ let
     end
 
     ϵ = zeros(num_of_lvls)
+    ϵ_test = zeros(num_of_lvls) # this array store errors calculated from multiple run-time which is wrong and very big
     for lvl = 1:length(ϵ)
         start = time()
         # Set up the local grid dimensions
@@ -166,7 +165,7 @@ let
                 (α) -> y2 * (1 .- α) / 2 + y4 * (1 .+ α) / 2,
                 (α) -> y1 * (1 .- α) / 2 + y2 * (1 .+ α) / 2,
                 (α) -> y3 * (1 .- α) / 2 + y4 * (1 .+ α) / 2]
-                eyα = [(α) -> -y1 / 2 + y3 / 2,
+            eyα = [(α) -> -y1 / 2 + y3 / 2,
                 (α) -> -y2 / 2 + y4 / 2,
                 (α) -> -y1 / 2 + y2 / 2,
                 (α) -> -y3 / 2 + y4 / 2]
@@ -205,12 +204,8 @@ let
 
             # Create the volume transform as the transfinite blending of the edge
             # transformations
-            xt(r,s) = transfinite_blend(ex[1], ex[2], ex[3], ex[4],
-                                    exα[1], exα[2], exα[3], exα[4],
-                                    r, s)
-            yt(r,s) = transfinite_blend(ey[1], ey[2], ey[3], ey[4],
-                                    eyα[1], eyα[2], eyα[3], eyα[4],
-                                    r, s)
+            xt(r,s) = transfinite_blend(ex[1], ex[2], ex[3], ex[4],exα[1], exα[2], exα[3], exα[4],r, s)
+            yt(r,s) = transfinite_blend(ey[1], ey[2], ey[3], ey[4],eyα[1], eyα[2], eyα[3], eyα[4],r, s)
 
 
             metrics = create_metrics(SBPp, Nr[e], Ns[e], xt, yt)
@@ -265,9 +260,8 @@ let
         end
 
         bc_Dirichlet = (lf, x, y, e, δ) -> vex(x, y, e)
-        bc_Neumann   = (lf, x, y, nx, ny, e, δ) -> (nx .* vex_x(x, y, e)
-                                                + ny .* vex_y(x, y, e))
-        in_jump      = (lf, x, y, e, δ) -> begin
+        bc_Neumann = (lf, x, y, nx, ny, e, δ) -> (nx .* vex_x(x, y, e) + ny .* vex_y(x, y, e))
+        in_jump  = (lf, x, y, e, δ) -> begin
             f = EToF[lf, e]
             if EToS[lf, e] == 1
                 if EToO[lf, e]
@@ -306,47 +300,6 @@ let
         u[:] = -FbarT' * λ
         u[:] .= g .+ u
 
-        repeat_times = 10
-        elapsed1 = elapsed2 = elapsed3 = 0.0
-        # for n = 1:repeat_times
-        #
-        #     start1 = time()
-        #     @threads for e=1:nelems
-        #         F = locfactors[e]
-        #         (x, y) = lop[e].coord
-        #         JH = lop[e].JH
-        #     end
-        #     elapsed1 += time() - start1
-        #
-        #
-        #     start2 = time()
-        #     @threads for e = 1:nelems
-        #         F = locfactors[e]
-        #         (x, y) = lop[e].coord
-        #         JH = lop[e].JH
-        #
-        #         @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
-        #         #=
-        #             ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
-        #             (@view u[vstarts[e]:(vstarts[e+1]-1)]))
-        #         =#
-        #         @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
-        #                                            vex(x[:], y[:], e))
-        #     end
-        #     elapsed2 += time() - start2
-        #
-        #
-        #     start3 = time()
-        #     for e = 1:nelems
-        #         JH = lop[e].JH
-        #         ϵ[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
-        #     end
-        #     elapsed3 += time() - start3
-        # end
-
-        # write()
-        ϵ[lvl]=0
-
         for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
@@ -362,20 +315,68 @@ let
                                                    vex(x[:], y[:], e))
             ϵ[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
         end
-        elapsed = time() - start
-        ϵ[lvl] = sqrt(ϵ[lvl])
-
-        # println("Time elapsed (reading matrices) for lvl $lvl = $elapsed1/$repeat_times")
-        # write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $elapsed1/$repeat_times\n")
-        #
-        # println("Time elapsed (linear solve with reading matrices) for lvl $lvl = $elapsed2/$repeat_times")
-        # write(fileio,"Time elapsed (linear Solve with reading matrices) for lvl $lvl = $elapsed2/$repeat_times\n")
-        #
-        # println("Time elapsed (error calculation) for lvl $lvl = $elapsed3/$repeat_times")
-        # write(fileio,"Time elapsed (error calculation) for lvl $lvl = $elapsed3/$repeat_times\n")
-
         ϵ[lvl] = sqrt(ϵ[lvl])
         @show (lvl, ϵ[lvl])
+        elapsed = time() - start
+
+
+        # starting timing with repeating times
+        repeat_times = 10
+        elapsed1 = elapsed2 = elapsed3 = 0.0
+
+        for n = 1:repeat_times
+            start1 = time()
+            @threads for e=1:nelems
+                F = locfactors[e]
+                (x, y) = lop[e].coord
+                JH = lop[e].JH
+            end
+            elapsed1 += time() - start1
+
+
+            start2 = time()
+            @threads for e = 1:nelems
+                F = locfactors[e]
+                (x, y) = lop[e].coord
+                JH = lop[e].JH
+
+                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
+                #=
+                    ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
+                    (@view u[vstarts[e]:(vstarts[e+1]-1)]))
+                =#
+            end
+            elapsed2 += time() - start2
+
+
+            start3 = time()
+            for e = 1:nelems
+                F = locfactors[e]
+                (x, y) = lop[e].coord
+                JH = lop[e].JH
+                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
+                #=
+                ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
+                        (@view u[vstarts[e]:(vstarts[e+1]-1)]))
+                =#
+
+                @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
+                                                       vex(x[:], y[:], e))
+                ϵ_test[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
+            end
+            elapsed3 += time() - start3
+        end
+        println("Time elapsed for the whole code is approximately $elapsed")
+        write(fileio,"Time elapsed for the whole code is approximately $elapsed")
+
+        println("Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)")
+        write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)\n")
+
+        println("Time elapsed (linear solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)")
+        write(fileio,"Time elapsed (linear Solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)\n")
+
+        println("Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)")
+        write(fileio,"Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)\n")
         write(fileio,string((lvl,ϵ[lvl])) * "\n")
     end
     println((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2))

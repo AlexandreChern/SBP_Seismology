@@ -1,0 +1,2 @@
+lvl = 1
+Time elapsed (assembleλmatrix) for lvl 1 = 0.11699986457824707

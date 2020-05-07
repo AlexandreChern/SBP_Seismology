@@ -1,0 +1,25 @@
+lvl = 1
+Time elapsed (assembleλmatrix) for lvl 1 = 0.12100005149841309
+Time elapsed for the whole code is approximately 8.747999906539917Time elapsed (reading matrices) for lvl 1 = 0.029000043869018555/10
+Time elapsed (linear Solve with reading matrices) for lvl 1 = 0.04900026321411133/10
+Time elapsed (All three parts) for lvl 1 = 0.0019998550415039062/10
+(1, 4127.285670886749)
+lvl = 2
+Time elapsed (assembleλmatrix) for lvl 2 = 0.06200003623962402
+Time elapsed for the whole code is approximately 0.12600016593933105Time elapsed (reading matrices) for lvl 2 = 0.006999969482421875/10
+Time elapsed (linear Solve with reading matrices) for lvl 2 = 0.016000032424926758/10
+Time elapsed (All three parts) for lvl 2 = 0.01399993896484375/10
+(2, 8.406744659193128)
+lvl = 3
+Time elapsed (assembleλmatrix) for lvl 3 = 0.4939999580383301
+Time elapsed for the whole code is approximately 0.9179999828338623Time elapsed (reading matrices) for lvl 3 = 0.0070002079010009766/10
+Time elapsed (linear Solve with reading matrices) for lvl 3 = 0.02599930763244629/10
+Time elapsed (All three parts) for lvl 3 = 0.07700037956237793/10
+(3, 0.2722447518273516)
+lvl = 4
+Time elapsed (assembleλmatrix) for lvl 4 = 5.705000162124634
+Time elapsed for the whole code is approximately 6.420000076293945Time elapsed (reading matrices) for lvl 4 = 0.006000041961669922/10
+Time elapsed (linear Solve with reading matrices) for lvl 4 = 0.14499998092651367/10
+Time elapsed (All three parts) for lvl 4 = 0.3359999656677246/10
+(4, 0.007358882541761314)
+[8.93943032856507, 4.948571111413317, 5.2092737202324235]

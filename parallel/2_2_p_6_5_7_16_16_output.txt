@@ -1,0 +1,13 @@
+lvl = 1
+Time elapsed (assembleλmatrix) for lvl 1 = 0.11599993705749512
+(1, 4127.285670886749)
+lvl = 2
+Time elapsed (assembleλmatrix) for lvl 2 = 0.04699993133544922
+(2, 8.406744659193128)
+lvl = 3
+Time elapsed (assembleλmatrix) for lvl 3 = 0.5139999389648438
+(3, 0.2722447518273516)
+lvl = 4
+Time elapsed (assembleλmatrix) for lvl 4 = 5.440999984741211
+(4, 0.007358882541761314)
+[8.93943032856507, 4.948571111413317, 5.2092737202324235]
