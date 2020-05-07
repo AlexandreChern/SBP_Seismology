@@ -1,0 +1,25 @@
+lvl = 1
+Time elapsed (assembleλmatrix) for lvl 1 = 0.18600010871887207
+Time elapsed (reading matrices) for lvl 1 = 0.04000043869018555/10
+Time elapsed (linear Solve with reading matrices) for lvl 1 = 0.1399996280670166/10
+Time elapsed (error calculation) for lvl 1 = 0.0/10
+(1, 40639.92420540927)
+lvl = 2
+Time elapsed (assembleλmatrix) for lvl 2 = 0.4700000286102295
+Time elapsed (reading matrices) for lvl 2 = 0.01699972152709961/10
+Time elapsed (linear Solve with reading matrices) for lvl 2 = 0.0410001277923584/10
+Time elapsed (error calculation) for lvl 2 = 0.0070002079010009766/10
+(2, 2.748684401006043e8)
+lvl = 3
+Time elapsed (assembleλmatrix) for lvl 3 = 3.503000020980835
+Time elapsed (reading matrices) for lvl 3 = 0.00800013542175293/10
+Time elapsed (linear Solve with reading matrices) for lvl 3 = 0.09299969673156738/10
+Time elapsed (error calculation) for lvl 3 = 0.003999948501586914/10
+(3, 2.8207123023052277e11)
+lvl = 4
+Time elapsed (assembleλmatrix) for lvl 4 = 34.52999997138977
+Time elapsed (reading matrices) for lvl 4 = 0.011999845504760742/10
+Time elapsed (linear Solve with reading matrices) for lvl 4 = 0.5350003242492676/10
+Time elapsed (error calculation) for lvl 4 = 0.04499983787536621/10
+(4, 2.5127869504571166e14)
+[-12.723555936816082, -10.003102542133776, -9.79901311431665]

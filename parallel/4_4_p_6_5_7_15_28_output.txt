@@ -1,0 +1,4 @@
+lvl = 1
+(1, 0.0)
+Time elapsed (reading matrices) for lvl 1 = 0.01900005340576172
+Time elapsed (linear Solve with reading matrices) for lvl 1 = 0.03800010681152344
