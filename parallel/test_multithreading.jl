@@ -5,7 +5,7 @@ include("global_curved_multithreading.jl")
 
 let
     # number of blocks in each side
-    n_block = 8
+    n_block = 4
     # SBP interior order
     SBPp   = 6
     num_of_lvls = 5
@@ -367,7 +367,7 @@ let
             elapsed3 += time() - start3
         end
         println("Time elapsed for the whole code is approximately $elapsed")
-        write(fileio,"Time elapsed for the whole code is approximately $elapsed")
+        write(fileio,"Time elapsed for the whole code is approximately $elapsed \n")
 
         println("Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)")
         write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)\n")
