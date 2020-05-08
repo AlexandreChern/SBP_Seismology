@@ -300,7 +300,7 @@ let
         u[:] = -FbarT' * λ
         u[:] .= g .+ u
 
-        for e = 1:nelems
+        @threads for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
             JH = lop[e].JH
