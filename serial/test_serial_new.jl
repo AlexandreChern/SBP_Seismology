@@ -1,6 +1,6 @@
 using .Threads
 using Dates
-include("global_curved_multithreading.jl")
+include("global_curved.jl")
 
 
 let
@@ -147,7 +147,7 @@ let
         lop = Dict{Int64, OPTYPE}()
 
         # Loop over blocks and create local operators
-        @threads for e = 1:nelems
+        for e = 1:nelems
             # Get the element corners
             (x1, x2, x3, x4) = verts[1, EToV[:, e]]
             (y1, y2, y3, y4) = verts[2, EToV[:, e]]
@@ -278,7 +278,7 @@ let
             end
         end
 
-        @threads for e = 1:nelems
+        for e = 1:nelems
             gδe = ntuple(4) do lf
                 f = EToF[lf, e]
                 if EToO[lf, e]
@@ -300,7 +300,7 @@ let
         u[:] = -FbarT' * λ
         u[:] .= g .+ u
 
-        @threads for e = 1:nelems
+        for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
             JH = lop[e].JH
@@ -326,7 +326,7 @@ let
 
         for n = 1:repeat_times
             start1 = time()
-            @threads for e=1:nelems
+            for e=1:nelems
                 F = locfactors[e]
                 (x, y) = lop[e].coord
                 JH = lop[e].JH
@@ -335,7 +335,7 @@ let
 
 
             start2 = time()
-            @threads for e = 1:nelems
+            for e = 1:nelems
                 F = locfactors[e]
                 (x, y) = lop[e].coord
                 JH = lop[e].JH
@@ -350,7 +350,7 @@ let
 
 
             start3 = time()
-            @threads for e = 1:nelems
+            for e = 1:nelems
                 F = locfactors[e]
                 (x, y) = lop[e].coord
                 JH = lop[e].JH
