@@ -1,6 +1,6 @@
 using .Threads
 using Dates
-include("global_curved_multithreading.jl")
+include("global_curved.jl")
 
 
 let
@@ -8,7 +8,7 @@ let
     n_block = 16
     # SBP interior order
     SBPp   = 6
-    num_of_lvls = 3
+    num_of_lvls = 2
     current_time = now()
     string_time =  String((Symbol("_",Dates.month(current_time),'_',Dates.day(current_time),'_',Dates.hour(current_time),'_',Dates.minute(current_time))))
     input_file_name =  String((Symbol(n_block,"_",n_block,"_block.inp")))
@@ -147,7 +147,7 @@ let
         lop = Dict{Int64, OPTYPE}()
 
         # Loop over blocks and create local operators
-        @threads for e = 1:nelems
+        for e = 1:nelems
             # Get the element corners
             (x1, x2, x3, x4) = verts[1, EToV[:, e]]
             (y1, y2, y3, y4) = verts[2, EToV[:, e]]
@@ -300,7 +300,7 @@ let
         u[:] = -FbarT' * λ
         u[:] .= g .+ u
 
-        @threads for e = 1:nelems
+        for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
             JH = lop[e].JH
@@ -321,62 +321,29 @@ let
 
 
         # starting timing with repeating times
-        repeat_times = 10
-        elapsed1 = elapsed2 = elapsed3 = 0.0
-
-        for n = 1:repeat_times
-            start1 = time()
-            @threads for e=1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-            end
-            elapsed1 += time() - start1
+        elapsed3 = 0.0
 
 
-            start2 = time()
-            @threads for e = 1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-
-                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
-                #=
-                    ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
+        start3 = time()
+        for e = 1:nelems
+            F = locfactors[e]
+            (x, y) = lop[e].coord
+            JH = lop[e].JH
+            @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
+            #=
+            ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
                     (@view u[vstarts[e]:(vstarts[e+1]-1)]))
-                =#
-            end
-            elapsed2 += time() - start2
+            =#
 
-
-            start3 = time()
-            @threads for e = 1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
-                #=
-                ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
-                        (@view u[vstarts[e]:(vstarts[e+1]-1)]))
-                =#
-
-                @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
-                                                       vex(x[:], y[:], e))
-                ϵ_test[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
-            end
-            elapsed3 += time() - start3
+            @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
+                                                   vex(x[:], y[:], e))
+            ϵ_test[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
         end
-        println("Time elapsed for the whole code is approximately $elapsed")
-        write(fileio,"Time elapsed for the whole code is approximately $elapsed \n")
+        elapsed3 += time() - start3
 
-        println("Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)")
-        write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)\n")
 
-        println("Time elapsed (linear solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)")
-        write(fileio,"Time elapsed (linear Solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)\n")
-
-        println("Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)")
-        write(fileio,"Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)\n")
+        println("Time elapsed (All three parts) for lvl $lvl = $elapsed3")
+        write(fileio,"Time elapsed (All three parts) for lvl $lvl = $elapsed3")
         write(fileio,string((lvl,ϵ[lvl])) * "\n")
     end
     println((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2))

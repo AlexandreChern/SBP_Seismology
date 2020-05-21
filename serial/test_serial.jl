@@ -1,10 +1,11 @@
 using .Threads
+using Dates
 include("global_curved.jl")
 
 
 let
   # number of blocks in each side
-  n_block = 4
+  n_block = 1
   # SBP interior order
   SBPp   = 6
   num_of_lvls = 6
