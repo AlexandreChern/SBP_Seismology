@@ -1,4 +1,4 @@
-include("global_curved_multithreading.jl");
+include("global_curved.jl");
 using .Threads
 using BenchmarkTools
 SBPp   = 6
@@ -210,7 +210,6 @@ end
 (M, FbarT, D, vstarts, FToλstarts) = threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                        (x) -> cholesky(Symmetric(x)))
 
-(M) = LocalGlobalOperators_forming(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS)
 
 @show lvl
 
