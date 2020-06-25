@@ -620,7 +620,7 @@ struct SBPLocalOperator1{T<:Real, S<:Factorization}
 end
 
 
-struct SBPLocalOperator1_forming{T<:Real}
+struct SBPLocalOperator1_forming{T<:Real}  # New structure designed to forming SBP global operators
     offset::Array{Int64,1}
     H::Array{T,1}
     X::Array{T,1}
@@ -694,7 +694,7 @@ function SBPLocalOperator1_forming(lop,Nr,Ns)
     end
     VNp = vstarts[nelems+1]-1 # total number of volume points
 
-    SBPLocalOperator1{Float64, FTYPE}(vstarts, VH, X, Y, E, factors)
+    SBPLocalOperator1_forming{Float64}(vstarts, VH, X, Y, E)
 end
 
 
@@ -747,6 +747,10 @@ function LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
   (M, FbarT, D, M.offset, FToλstarts)
 end
 
+function LocalGlobalOperators_forming(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS)
+    M = SBPLocalOperator1_forming(lop,Nr,Ns)
+    (M)
+end
 
 function threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                               factorization)
