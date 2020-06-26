@@ -5,7 +5,10 @@ SBPp   = 6
 
 bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
           BC_JUMP_INTERFACE]
-(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/4_4_block.inp";
+
+n_block = 2;
+filename = String(Symbol(n_block,"_",n_block,"_block.inp"));
+(verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("../meshes/$filename";
                                                    bc_map = bc_map)
 # EToV defines the element by its vertices
 # EToF defines element by its four faces, in global face number
@@ -210,10 +213,20 @@ end
 (M, FbarT, D, vstarts, FToλstarts) = threaded_LocalGlobalOperators(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
                        (x) -> cholesky(Symmetric(x)))
 
+# (M, factors, FbarT, D, vstarts, FToλstarts) = LocalGlobalOperators_decoupled(lop,Nr,Ns,FToB,FToE,FToLF,EToO,EToS,(x)->cholesky(Symmetric(x)))
+
+
+# Line 213 cna now be replaced with the separate three lines of code
+M = SBPLocalOperator1_forming(lop,Nr,Ns)
+factors = SBPLocalOperator1_factorization(lop,Nr,Ns,(x) -> cholesky(Symmetric(x)))
+(FToλstarts, FbarT,D) = threaded_gloλoperator(lop,M.offset,FToB,FToE,FToLF,EToO,EToS,Nr,Ns)
+
+# SBPLocalOperator1_factorization(lop,Nr,Ns,(x)->cholesky(Symmetric(x)))
 
 @show lvl
 
 locfactors = M.F
+locfactors == factors
 
 FToE[:,:]
 

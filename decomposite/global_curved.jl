@@ -631,7 +631,7 @@ struct SBPLocalOperator1_forming{T<:Real}  # New structure designed to forming S
     new(vstarts, H, X, Y, E)
 end
 
-function SBPLocalOperator1(lop, Nr, Ns, factorization)
+function SBPLocalOperator1(lop, Nr, Ns, factorization)   # This is the original function that contains both solving and factorization parts
   nelems = length(lop)
   vstarts = Array{Int64, 1}(undef, nelems + 1)
   vstarts[1] = 1
@@ -664,7 +664,7 @@ function SBPLocalOperator1(lop, Nr, Ns, factorization)
   SBPLocalOperator1{Float64, FTYPE}(vstarts, VH, X, Y, E, factors)
 end
 
-function SBPLocalOperator1_forming(lop,Nr,Ns)
+function SBPLocalOperator1_forming(lop,Nr,Ns)    # This is the new function that only contains operators forming part
     nelems = length(lop)
     vstarts = Array{Int64, 1}(undef, nelems + 1)
     vstarts[1] = 1
@@ -698,9 +698,17 @@ function SBPLocalOperator1_forming(lop,Nr,Ns)
 end
 
 
-function SBPLocalOperator1_factorization()
-
+function SBPLocalOperator1_factorization(lop,Nr,Ns,factorization)    # This is the new function that only contains operators solving part
+    nelems = length(lop)
+    FTYPE = typeof(factorization(sparse([1],[1],[1.0])))
+    factors = Array{FTYPE, 1}(undef, nelems)
+    for e in 1:nelems
+        factors[e] = factorization(lop[e].M̃)
+    end
+    (factors)
 end
+
+
 
 
 function threaded_SBPLocalOperator1(lop, Nr, Ns, factorization)
@@ -736,6 +744,17 @@ function threaded_SBPLocalOperator1(lop, Nr, Ns, factorization)
   SBPLocalOperator1{Float64, FTYPE}(vstarts, VH, X, Y, E, factors)
 end
 
+
+
+# This LocalGlobalOperators_decoupled is just forming LocalGlobalOperators with two decoupled functions
+function LocalGlobalOperators_decoupled(lop, Nr, Ns, FToB, FToE, FToLF, EToO, EToS,
+                              factorization)
+    M = SBPLocalOperator1_forming(lop,Nr,Ns)
+    factors = SBPLocalOperator1_factorization(lop,Nr,Ns,factorization)
+    (FToλstarts, FbarT, D) = threaded_gloλoperator(lop, M.offset, FToB, FToE, FToLF, EToO,
+                                          EToS, Nr, Ns)
+    (M, factors, FbarT, D, M.offset, FToλstarts)
+end
 
 
 #}}}
