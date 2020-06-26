@@ -815,6 +815,7 @@ end
 
 
 #{{{ assembleλmatrix: Schur complement system
+# F is factorization results of each block
 function assembleλmatrix(FToλstarts, vstarts, EToF, FToB, F, D, FbarT)
   nfaces = length(FToλstarts)-1
   nelems = length(vstarts)-1
