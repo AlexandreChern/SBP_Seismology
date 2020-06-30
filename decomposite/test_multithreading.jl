@@ -1,11 +1,13 @@
 using .Threads
 using Dates
+using BenchmarkTools
 include("global_curved.jl")
+
 
 
 let
     # number of blocks in each side
-    n_block = 4
+    n_block = 8
     # SBP interior order
     SBPp   = 6
     num_of_lvls = 4
@@ -225,7 +227,12 @@ let
         #                    (x) -> cholesky(Symmetric(x)))
 
         M = SBPLocalOperator1_forming(lop,Nr,Ns)
-        factors = SBPLocalOperator1_factorization(lop,Nr,Ns,(x) -> cholesky(Symmetric(x)))
+        chol_fac = (x) -> cholesky(Symmetric(x))
+        lu_fac = (x) -> lu(x)
+        fac_method = chol_fac
+        # factors = SBPLocalOperator1_factorization(lop,Nr,Ns,(x) -> cholesky(Symmetric(x)))
+        factors = SBPLocalOperator1_factorization(lop,Nr,Ns,fac_method)
+
         vstarts = M.offset
         (FToλstarts, FbarT,D) = threaded_gloλoperator(lop,M.offset,FToB,FToE,FToLF,EToO,EToS,Nr,Ns)
 
@@ -254,11 +261,19 @@ let
 
         # Build the (sparse) λ matrix using the schur complement and factor
         start_assembleλmatrix = time()
-        B = assembleλmatrix(FToλstarts, vstarts, EToF, FToB, locfactors, D, FbarT)
+        (B,elapsed) = assembleλmatrix_test(FToλstarts, vstarts, EToF, FToB, locfactors, D, FbarT)
+        println("Time for direct solve in forming λ: $elapsed")
+        write(fileio,"Time for direct solve in forming λ: $elapsed\n")
+
         elapsed_assembleλmatrix = time() - start_assembleλmatrix
         println("Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix")
         write(fileio,"Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix\n")
 
+        rs1 = @benchmark assembleλmatrix_test($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
+        rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
+
+        display(rs1)
+        display(rs2)
 
         BF = cholesky(Symmetric(B))
 
@@ -394,6 +409,7 @@ let
         println("Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)")
         write(fileio,"Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)\n")
         write(fileio,string((lvl,ϵ[lvl])) * "\n")
+
     end
     println((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2))
     write(fileio,string((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2)))
