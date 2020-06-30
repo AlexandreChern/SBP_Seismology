@@ -156,21 +156,21 @@ let
 
             # Initialize the block transformations as transfinite between the corners
             ex = [(α) -> x1 * (1 .- α) / 2 + x3 * (1 .+ α) / 2,
-                (α) -> x2 * (1 .- α) / 2 + x4 * (1 .+ α) / 2,
-                (α) -> x1 * (1 .- α) / 2 + x2 * (1 .+ α) / 2,
-                (α) -> x3 * (1 .- α) / 2 + x4 * (1 .+ α) / 2]
+            (α) -> x2 * (1 .- α) / 2 + x4 * (1 .+ α) / 2,
+            (α) -> x1 * (1 .- α) / 2 + x2 * (1 .+ α) / 2,
+            (α) -> x3 * (1 .- α) / 2 + x4 * (1 .+ α) / 2]
             exα = [(α) -> -x1 / 2 + x3 / 2,
-                (α) -> -x2 / 2 + x4 / 2,
-                (α) -> -x1 / 2 + x2 / 2,
-                (α) -> -x3 / 2 + x4 / 2]
+            (α) -> -x2 / 2 + x4 / 2,
+            (α) -> -x1 / 2 + x2 / 2,
+            (α) -> -x3 / 2 + x4 / 2]
             ey = [(α) -> y1 * (1 .- α) / 2 + y3 * (1 .+ α) / 2,
-                (α) -> y2 * (1 .- α) / 2 + y4 * (1 .+ α) / 2,
-                (α) -> y1 * (1 .- α) / 2 + y2 * (1 .+ α) / 2,
-                (α) -> y3 * (1 .- α) / 2 + y4 * (1 .+ α) / 2]
+            (α) -> y2 * (1 .- α) / 2 + y4 * (1 .+ α) / 2,
+            (α) -> y1 * (1 .- α) / 2 + y2 * (1 .+ α) / 2,
+            (α) -> y3 * (1 .- α) / 2 + y4 * (1 .+ α) / 2]
             eyα = [(α) -> -y1 / 2 + y3 / 2,
-                (α) -> -y2 / 2 + y4 / 2,
-                (α) -> -y1 / 2 + y2 / 2,
-                (α) -> -y3 / 2 + y4 / 2]
+            (α) -> -y2 / 2 + y4 / 2,
+            (α) -> -y1 / 2 + y2 / 2,
+            (α) -> -y3 / 2 + y4 / 2]
 
             # For blocks on the circle, put in the curved edge transform
             if FToB[EToF[1, e]] == BC_JUMP_INTERFACE
@@ -268,11 +268,11 @@ let
         elapsed_assembleλmatrix = time() - start_assembleλmatrix
         println("Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix")
         write(fileio,"Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix\n")
-
-        rs1 = @benchmark assembleλmatrix_test($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
+        #
+        # rs1 = @benchmark assembleλmatrix_test($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
         rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
-
-        display(rs1)
+        println(Base.summarysize(B))
+        # display(rs1)
         display(rs2)
 
         BF = cholesky(Symmetric(B))
@@ -293,44 +293,79 @@ let
         bc_Dirichlet = (lf, x, y, e, δ) -> vex(x, y, e)
         bc_Neumann = (lf, x, y, nx, ny, e, δ) -> (nx .* vex_x(x, y, e) + ny .* vex_y(x, y, e))
         in_jump  = (lf, x, y, e, δ) -> begin
-            f = EToF[lf, e]
-            if EToS[lf, e] == 1
-                if EToO[lf, e]
-                    return -δ[FToδstarts[f]:(FToδstarts[f+1]-1)]
-                else
-                    error("shouldn't get here")
-                end
+        f = EToF[lf, e]
+        if EToS[lf, e] == 1
+            if EToO[lf, e]
+                return -δ[FToδstarts[f]:(FToδstarts[f+1]-1)]
             else
-                if EToO[lf, e]
-                    return  δ[FToδstarts[f]:(FToδstarts[f+1]-1)]
-                else
-                    return  δ[(FToδstarts[f+1]-1):-1:FToδstarts[f]]
-                end
+                error("shouldn't get here")
+            end
+        else
+            if EToO[lf, e]
+                return  δ[FToδstarts[f]:(FToδstarts[f+1]-1)]
+            else
+                return  δ[(FToδstarts[f+1]-1):-1:FToδstarts[f]]
             end
         end
+    end
 
-        @threads for e = 1:nelems
-            gδe = ntuple(4) do lf
-                f = EToF[lf, e]
-                if EToO[lf, e]
-                    return @view gδ[FToλstarts[f]:(FToλstarts[f+1]-1)]
-                else
-                    return  @view gδ[(FToλstarts[f+1]-1):-1:FToλstarts[f]]
+    @threads for e = 1:nelems
+        gδe = ntuple(4) do lf
+            f = EToF[lf, e]
+            if EToO[lf, e]
+                return @view gδ[FToλstarts[f]:(FToλstarts[f+1]-1)]
+            else
+                return  @view gδ[(FToλstarts[f+1]-1):-1:FToλstarts[f]]
             end
         end
         locbcarray!((@view g[vstarts[e]:vstarts[e+1]-1]), gδe, lop[e],
-                    FToB[EToF[:,e]], bc_Dirichlet, bc_Neumann, in_jump, (e, δ))
+        FToB[EToF[:,e]], bc_Dirichlet, bc_Neumann, in_jump, (e, δ))
 
         source = (x, y, e) -> (-vex_xx(x, y, e)  - vex_yy(x, y, e))
         locsourcearray!((@view g[vstarts[e]:vstarts[e+1]-1]), source, lop[e], e)
+    end
+
+    LocalToGLobalRHS!(bλ, g, gδ,  u, locfactors, FbarT, vstarts)
+    λ[:] = BF \ bλ
+
+    u[:] = -FbarT' * λ
+    u[:] .= g .+ u
+
+    @threads for e = 1:nelems
+        F = locfactors[e]
+        (x, y) = lop[e].coord
+        JH = lop[e].JH
+
+        @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
+        #=
+        ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
+        (@view u[vstarts[e]:(vstarts[e+1]-1)]))
+        =#
+
+        @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
+        vex(x[:], y[:], e))
+        ϵ[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
+    end
+    ϵ[lvl] = sqrt(ϵ[lvl])
+    @show (lvl, ϵ[lvl])
+    elapsed = time() - start
+
+
+    # starting timing with repeating times
+    repeat_times = 10
+    elapsed1 = elapsed2 = elapsed3 = 0.0
+
+    for n = 1:repeat_times
+        start1 = time()
+        @threads for e=1:nelems
+            F = locfactors[e]
+            (x, y) = lop[e].coord
+            JH = lop[e].JH
         end
+        elapsed1 += time() - start1
 
-        LocalToGLobalRHS!(bλ, g, gδ,  u, locfactors, FbarT, vstarts)
-        λ[:] = BF \ bλ
 
-        u[:] = -FbarT' * λ
-        u[:] .= g .+ u
-
+        start2 = time()
         @threads for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
@@ -339,80 +374,45 @@ let
             @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
             #=
             ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
-                    (@view u[vstarts[e]:(vstarts[e+1]-1)]))
+            (@view u[vstarts[e]:(vstarts[e+1]-1)]))
+            =#
+        end
+        elapsed2 += time() - start2
+
+
+        start3 = time()
+        @threads for e = 1:nelems
+            F = locfactors[e]
+            (x, y) = lop[e].coord
+            JH = lop[e].JH
+            @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
+            #=
+            ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
+            (@view u[vstarts[e]:(vstarts[e+1]-1)]))
             =#
 
             @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
-                                                   vex(x[:], y[:], e))
-            ϵ[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
+            vex(x[:], y[:], e))
+            ϵ_test[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
         end
-        ϵ[lvl] = sqrt(ϵ[lvl])
-        @show (lvl, ϵ[lvl])
-        elapsed = time() - start
-
-
-        # starting timing with repeating times
-        repeat_times = 10
-        elapsed1 = elapsed2 = elapsed3 = 0.0
-
-        for n = 1:repeat_times
-            start1 = time()
-            @threads for e=1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-            end
-            elapsed1 += time() - start1
-
-
-            start2 = time()
-            @threads for e = 1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-
-                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
-                #=
-                    ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
-                    (@view u[vstarts[e]:(vstarts[e+1]-1)]))
-                =#
-            end
-            elapsed2 += time() - start2
-
-
-            start3 = time()
-            @threads for e = 1:nelems
-                F = locfactors[e]
-                (x, y) = lop[e].coord
-                JH = lop[e].JH
-                @views u[vstarts[e]:(vstarts[e+1]-1)] = F \ u[vstarts[e]:(vstarts[e+1]-1)]
-                #=
-                ldiv!((@view u[vstarts[e]:(vstarts[e+1]-1)]), F,
-                        (@view u[vstarts[e]:(vstarts[e+1]-1)]))
-                =#
-
-                @views Δ[vstarts[e]:(vstarts[e+1]-1)] = (u[vstarts[e]:(vstarts[e+1]-1)] -
-                                                       vex(x[:], y[:], e))
-                ϵ_test[lvl] += Δ[vstarts[e]:(vstarts[e+1]-1)]' * JH * Δ[vstarts[e]:(vstarts[e+1]-1)]
-            end
-            elapsed3 += time() - start3
-        end
-        println("Time elapsed for the whole code is approximately $elapsed")
-        write(fileio,"Time elapsed for the whole code is approximately $elapsed \n")
-
-        println("Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)")
-        write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)\n")
-
-        println("Time elapsed (linear solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)")
-        write(fileio,"Time elapsed (linear Solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)\n")
-
-        println("Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)")
-        write(fileio,"Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)\n")
-        write(fileio,string((lvl,ϵ[lvl])) * "\n")
-
+        elapsed3 += time() - start3
     end
-    println((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2))
-    write(fileio,string((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2)))
-    nothing
-    close(fileio)
+    println("Time elapsed for the whole code is approximately $elapsed")
+    write(fileio,"Time elapsed for the whole code is approximately $elapsed \n")
+
+    println("Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)")
+    write(fileio,"Time elapsed (reading matrices) for lvl $lvl = $(elapsed1/repeat_times)\n")
+
+    println("Time elapsed (linear solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)")
+    write(fileio,"Time elapsed (linear Solve with reading matrices) for lvl $lvl = $(elapsed2/repeat_times)\n")
+
+    println("Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)")
+    write(fileio,"Time elapsed (All three parts) for lvl $lvl = $(elapsed3/repeat_times)\n")
+    write(fileio,string((lvl,ϵ[lvl])) * "\n")
+
+end
+println((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2))
+write(fileio,string((log.(ϵ[1:end-1]) - log.(ϵ[2:end])) / log(2)))
+nothing
+close(fileio)
 end

@@ -1,6 +1,7 @@
 using SparseArrays
 using LinearAlgebra
 using .Threads
+using BenchmarkTools
 
 if (typeof(Base.find_package("UnicodePlots")) == Nothing)
     println("Package Unicode not installed")
@@ -918,18 +919,34 @@ function assembleλmatrix_test(FToλstarts, vstarts, EToF, FToB, F, D, FbarT)
                 # B = randn(length(vrng),length(λrng))
                 # (m,n) = (length(vrng),length(λrng))
                 # @show (m,n)
-                B = similar(Fbar[vrng,λrng])
                 # @show size(B)
                 # @show Base.summarysize(B)
                 # @show size(B)
-                # B = -(F[e]' \ Fbar[vrng,λrng]) # This expression doesn't support the case where F[e] is LU factorization when RHS is sparse matrix
-                for lb in λrng
-                    # B[:,lb] = - (F[e]' \ Fbar[vrng,lb])
-                    # @show size(F[e]')
-                    # @show size(Fbar[vrng,lb])
-                    B[:,lb-λrng[1]+1] = F[e]' \ Fbar[vrng,lb]
-                end
-                @show B
+                B = -(F[e]' \ Fbar[vrng,λrng]) # This expression doesn't support the case where F[e] is LU factorization when RHS is sparse matrix
+
+
+                ## multi-threading test starts here, but failed
+                # B = similar(Fbar[vrng,λrng])
+                # for lb in λrng
+                #     # B[:,lb] = - (F[e]' \ Fbar[vrng,lb])
+                #     # @show size(F[e]')
+                #     # @show size(Fbar[vrng,lb])
+                #     # @show typeof(Fbar[vrng,lb])
+                #     # @show size(Fbar[vrng,lb])
+                #     # println()
+                #     # @show typeof( F[e]' \ Fbar[vrng,lb])
+                #     # @show size(F[e]' \ Fbar[vrng,lb])
+                #     # println()
+                #     # @show typeof(B[:,lb-λrng[1]+1])
+                #     # @show size(B[:,lb-λrng[1]+1])
+                #     # println()
+                #     B[:,lb-λrng[1]+1] = F[e]' \ Fbar[vrng,lb]
+                # end
+                ## multi-threading test ends here
+
+                # display(@benchmark B = $F[$e]' \ $Fbar[$vrng,$λrng])
+
+                # @show B
                 elapsed += time() - start
                 for lf2 = 1:4
                     f2 = EToF[lf2,e]
