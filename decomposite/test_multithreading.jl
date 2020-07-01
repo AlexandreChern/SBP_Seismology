@@ -1,16 +1,60 @@
 using .Threads
 using Dates
 using BenchmarkTools
+using ArgParse
 include("global_curved.jl")
+
+function parse_commandline()
+    s = ArgParseSettings()
+
+    @add_arg_table s  begin
+        "--block_num", "-b"
+            help = "an option with an argument"
+        "--level_num", "-l"
+            help = "another option with an argument"
+            arg_type = Int
+            default = 4
+        # "--flag1"
+        #     help = "an option without argument, i,e, a flag"
+        #     action = :store_true
+        # "arg1"
+        #     help = "a positional argument"
+        #     required = true
+    end
+    return parse_args(s)
+end
+
+# function main()
+#     parsed_args = parse_commandline()
+#     println("Parsed args:")
+#     for (arg,val) in parsed_args
+#         println(" $arg => $val")
+#     end
+# end
+
+parsed_args = parse_commandline()
+
+# @show parsed_args
+#
+block_num = parsed_args["block_num"]
+level_num = parsed_args["level_num"]
+
+# @show block_num
+# @show level_num
 
 
 
 let
     # number of blocks in each side
-    n_block = 8
+    # n_block = 8
+    n_block = block_num
+    # n_block = $block_
     # SBP interior order
     SBPp   = 6
-    num_of_lvls = 4
+    # num_of_lvls = 4
+    num_of_lvls = level_num
+    @show n_block
+    @show num_of_lvls
     current_time = now()
     string_time =  String((Symbol("_",Dates.month(current_time),'_',Dates.day(current_time),'_',Dates.hour(current_time),'_',Dates.minute(current_time))))
     input_file_name =  String((Symbol(n_block,"_",n_block,"_block.inp")))
@@ -215,6 +259,10 @@ let
             # Build local operators
             lop[e] = locoperator(SBPp, Nr[e], Ns[e], metrics, FToB[EToF[:, e]])
         end
+        m_list = [lop[e].M̃ for e in 1:nelems]
+        println(length(m_list))
+        println(length(unique(m_list)))
+
 
         # If this is the first mesh level plot the mesh
         # lvl == 1 && plot_blocks(lop)
@@ -266,12 +314,23 @@ let
         write(fileio,"Time for direct solve in forming λ: $elapsed\n")
 
         elapsed_assembleλmatrix = time() - start_assembleλmatrix
+        # Test code to show the size of each input variabls
+        # @show Base.summarysize(FToλstarts)
+        # @show Base.summarysize(vstarts)
+        # @show Base.summarysize(EToF)
+        # @show Base.summarysize(FToB)
+        # @show Base.summarysize(locfactors)
+        # @show Base.summarysize(D)
+        # @show Base.summarysize(FbarT)
+        # @show Base.summarysize(B)
+        println(length(locfactors))
+        println(length(unique(locfactors)))
         println("Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix")
         write(fileio,"Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix\n")
         #
         # rs1 = @benchmark assembleλmatrix_test($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
         rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
-        println(Base.summarysize(B))
+        # println(Base.summarysize(B))
         # display(rs1)
         display(rs2)
 
