@@ -14,6 +14,11 @@ function parse_commandline()
             help = "another option with an argument"
             arg_type = Int
             default = 4
+
+        "--sbp_level", "-o"
+            help = "SBP operators order"
+            arg_type = Int
+            default = 6
         # "--flag1"
         #     help = "an option without argument, i,e, a flag"
         #     action = :store_true
@@ -38,6 +43,7 @@ parsed_args = parse_commandline()
 #
 block_num = parsed_args["block_num"]
 level_num = parsed_args["level_num"]
+SBP_lvl = parsed_args["sbp_level"]
 
 # @show block_num
 # @show level_num
@@ -50,7 +56,8 @@ let
     n_block = block_num
     # n_block = $block_
     # SBP interior order
-    SBPp   = 6
+    # SBPp   = 6
+    SBPp = SBP_lvl
     # num_of_lvls = 4
     num_of_lvls = level_num
     @show n_block
