@@ -10,6 +10,8 @@ function parse_commandline()
     @add_arg_table s  begin
         "--block_num", "-b"
             help = "an option with an argument"
+            arg_type = Int
+            default = 4
         "--level_num", "-l"
             help = "another option with an argument"
             arg_type = Int
@@ -62,6 +64,7 @@ let
     num_of_lvls = level_num
     @show n_block
     @show num_of_lvls
+    @show SBPp
     current_time = now()
     string_time =  String((Symbol("_",Dates.month(current_time),'_',Dates.day(current_time),'_',Dates.hour(current_time),'_',Dates.minute(current_time))))
     input_file_name =  String((Symbol(n_block,"_",n_block,"_block.inp")))
@@ -295,7 +298,7 @@ let
 
         @show lvl
         write(fileio,"\n")
-        write(fileio,"lvl = $lvl" * "\n")
+        write(fileio,"lvl = $lvl \n")
 
         println("N: $(2^(lvl+3)*n_block)")
         write(fileio, "N: $(2^(lvl+3)*n_block)\n")
