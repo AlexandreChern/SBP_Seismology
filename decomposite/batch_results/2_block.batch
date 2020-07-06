@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --account=erickson   ### change this to your actual account for charging
+#SBATCH --partition=short      ### queue to submit to
+#SBATCH --job-name=2_block    ### job name
+#SBATCH --output=2_block.out   ### file in which to store job stdout
+#SBATCH --error=2_block.err    ### file in which to store job stderr
+#SBATCH --time=0-12:00:00                ### wall-clock time limit, in minutes
+#SBATCH --mem=128000              ### memory limit per node, in MB
+#SBATCH --nodes=1               ### number of nodes to use
+#SBATCH --ntasks-per-node=1     ### number of tasks to launch per node
+#SBATCH --cpus-per-task=1       ### number of cores for each task
+
+module load julia
+cd ..
+JULIA_NUM_THREADS=4 julia test_multithreading.jl
