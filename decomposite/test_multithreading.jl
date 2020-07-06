@@ -7,7 +7,7 @@ include("global_curved.jl")
 function parse_commandline()
     s = ArgParseSettings()
 
-    @add_arg_table s  begin
+    @add_arg_table! s  begin
         "--block_num", "-b"
             help = "an option with an argument"
             arg_type = Int
@@ -49,7 +49,6 @@ SBP_lvl = parsed_args["sbp_level"]
 
 # @show block_num
 # @show level_num
-
 
 
 let
@@ -339,10 +338,13 @@ let
         write(fileio,"Time elapsed (assembleλmatrix) for lvl $lvl = $elapsed_assembleλmatrix\n")
         #
         # rs1 = @benchmark assembleλmatrix_test($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
-        rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
+
         # println(Base.summarysize(B))
         # display(rs1)
-        display(rs2)
+        # 
+        # rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
+        #
+        # display(rs2)
 
         BF = cholesky(Symmetric(B))
 
@@ -450,7 +452,7 @@ let
 
 
         start3 = time()
-        @threads for e = 1:nelems
+        @sync @threads for e = 1:nelems
             F = locfactors[e]
             (x, y) = lop[e].coord
             JH = lop[e].JH

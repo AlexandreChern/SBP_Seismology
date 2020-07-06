@@ -3,6 +3,8 @@ using LinearAlgebra
 using .Threads
 using BenchmarkTools
 
+import Base.Threads.@spawn
+
 if (typeof(Base.find_package("UnicodePlots")) == Nothing)
     println("Package Unicode not installed")
     using Pkg;
@@ -890,6 +892,7 @@ function assembleλmatrix_test(FToλstarts, vstarts, EToF, FToB, F, D, FbarT)
 
     for e = 1:nelems
         lλs = Array{Int64, 1}(undef, 4)
+        # @spawn lλs = Array{Int64, 1}(undef, 4)
         for lf = 1:4
             f = EToF[lf,e]
             lλs[lf] = FToλstarts[f+1] - FToλstarts[f]
