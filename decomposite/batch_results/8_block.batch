@@ -12,4 +12,4 @@
 
 module load julia
 cd ..
-JULIA_NUM_THREADS=4 julia test_multithreading.jl
+JULIA_NUM_THREADS=4 julia test_multithreading.jl -b 8 -l 4

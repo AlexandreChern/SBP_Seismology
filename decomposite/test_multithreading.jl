@@ -397,7 +397,11 @@ let
     end
 
     LocalToGLobalRHS!(bλ, g, gδ,  u, locfactors, FbarT, vstarts)
+    start_gs = time()
     λ[:] = BF \ bλ
+    elapsed_gs = time() - start_gs
+    println("Time elapsed for the global solve is approximately $elapsed_gs")
+    write(fileio,"Time elapsed for the whole code is approximately $elapsed_gs \n")
 
     u[:] = -FbarT' * λ
     u[:] .= g .+ u

@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --account=erickson   ### change this to your actual account for charging
 #SBATCH --partition=short      ### queue to submit to
-#SBATCH --job-name=4_block_long    ### job name
-#SBATCH --output=4_block_long.out   ### file in which to store job stdout
-#SBATCH --error=4_block_long.err    ### file in which to store job stderr
-#SBATCH --time=1-00:00:00                ### wall-clock time limit, in minutes
+#SBATCH --job-name=parallel_4_threads    ### job name
+#SBATCH --output=parallel_4_threads.out   ### file in which to store job stdout
+#SBATCH --error=parallel_4_threads.err    ### file in which to store job stderr
+#SBATCH --time=0-12:00:00                ### wall-clock time limit, in minutes
 #SBATCH --mem=128000              ### memory limit per node, in MB
 #SBATCH --nodes=1               ### number of nodes to use
 #SBATCH --ntasks-per-node=1     ### number of tasks to launch per node
@@ -12,4 +12,4 @@
 
 module load julia
 cd ..
-JULIA_NUM_THREADS=4 julia test_multithreading.jl -b 4 -l 5
+JULIA_NUM_THREADS=4 julia test_multithreading.jl

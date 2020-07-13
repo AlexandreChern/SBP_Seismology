@@ -1,0 +1,1 @@
+/cm/local/apps/slurm/var/spool/job11885326/slurm_script: line 14: 43393 Segmentation fault      (core dumped) julia test_serial.jl

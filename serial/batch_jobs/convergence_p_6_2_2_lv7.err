@@ -1,0 +1,9 @@
+ERROR: LoadError: UndefVarError: now not defined
+Stacktrace:
+ [1] top-level scope at /gpfs/home/yiminc/version-control/SBP_Seismology/serial/test_serial.jl:11
+ [2] include at ./boot.jl:328 [inlined]
+ [3] include_relative(::Module, ::String) at ./loading.jl:1105
+ [4] include(::Module, ::String) at ./Base.jl:31
+ [5] exec_options(::Base.JLOptions) at ./client.jl:287
+ [6] _start() at ./client.jl:460
+in expression starting at /gpfs/home/yiminc/version-control/SBP_Seismology/serial/test_serial.jl:5
