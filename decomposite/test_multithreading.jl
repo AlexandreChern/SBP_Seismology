@@ -345,8 +345,12 @@ let
         # rs2 = @benchmark assembleλmatrix($FToλstarts, $vstarts, $EToF, $FToB, $locfactors, $D, $FbarT)
         #
         # display(rs2)
-
+	
+	start_chol_B = time()
         BF = cholesky(Symmetric(B))
+	elapsed_chol_B = time() - start_chol_B
+	println("Time elapsed for cholesky factorization for B $elapsed_chol_B$")
+	write(fileio, "Time elapsed for cholesky factorization for B $elapsed_chol_B$\n")
 
         (bλ, λ, gδ) = (zeros(λNp), zeros(λNp), zeros(λNp))
         (Δ, u, g) = (zeros(VNp), zeros(VNp), zeros(VNp))
@@ -401,7 +405,7 @@ let
     λ[:] = BF \ bλ
     elapsed_gs = time() - start_gs
     println("Time elapsed for the global solve is approximately $elapsed_gs")
-    write(fileio,"Time elapsed for the whole code is approximately $elapsed_gs \n")
+    write(fileio,"Time elapsed for the global solve is approximately $elapsed_gs \n")
 
     u[:] = -FbarT' * λ
     u[:] .= g .+ u
