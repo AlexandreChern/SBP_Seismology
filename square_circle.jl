@@ -4,13 +4,15 @@ let
   # SBP interior order
     SBPp   = 6
 
+  # number of levels
+  num_of_levels = 4
 
   # mesh file side set type to actually boundary condition type
     bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
             BC_JUMP_INTERFACE]
   # (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/square_circle.inp";
   #                                                    bc_map = bc_map)
-    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/2_2_block.inp";
+    (verts, EToV, EToF, FToB, EToDomain) = read_inp_2d("meshes/1_1_block.inp";
                                                      bc_map=bc_map)
   # EToV defines the element by its vertices
   # EToF defines element by its four faces, in global face number
@@ -123,7 +125,7 @@ let
         end
     end
 
-    ϵ = zeros(7)
+    ϵ = zeros(num_of_levels)
     for lvl = 1:length(ϵ)
     # Set up the local grid dimensions
         Nr = EToN0[1, :] * (2^(lvl - 1))
