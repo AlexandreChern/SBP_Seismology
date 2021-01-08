@@ -106,8 +106,10 @@ let
         (y1, y2, y3, y4) = verts[2,:]
 
         # xt = ?
+        # xt(r,s) = r
         # yt = ?
-
+        # yt(r,s) = s
+        
         # create metrics
         metrics = create_metrics(SBPp, Nr, Ns, xt, yt) # not quite sure about this part
 
@@ -120,7 +122,7 @@ let
         M = SBPLocalOperator1(lop, Nr, Ns, factorization)
 
         # obtain g
-        
+
 
 
 
