@@ -928,6 +928,7 @@ function plot_connectivity(verts, EToV)
     end
     title!(plt, "connectivity")
     display(plt)
+    println()
 end
 
 function plot_blocks(lop)
