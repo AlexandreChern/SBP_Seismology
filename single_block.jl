@@ -125,14 +125,22 @@ let
 
         # create local operator
         LFtoB = [BC_DIRICHLET,BC_DIRICHLET,BC_NEUMANN,BC_NEUMANN]
-        lop = locoperator(SBPp, Nr[1], Ns[1], metrics, LFtoB) # this function might not be correct 
+        lop = Dict{Int64,OPTYPE}() # This step to create a dict is essential
+        lop[1] = locoperator(SBPp, Nr[1], Ns[1], metrics, LFtoB) # this function might not be correct
+        # for locoperator() call with more elements, the length of lop is the number of the elements 
+        # for locoperator() call with a single element, the length of lop is the length of the tuple. (how many items for a single elemet)
         println("lop created successfully")
+        # @show typeof(lop)
+        @show length(lop)
 
         # obtain M 
         factorization = (x) -> cholesky(Symmetric(x))
         M = SBPLocalOperator1(lop, Nr[1], Ns[1], factorization)
+        println("M created successfully")
+        # M = locoperator(SBPp, Nr[1],Ns[1],metrics,LFtoB)
 
         # obtain g
+        
 
 
 
