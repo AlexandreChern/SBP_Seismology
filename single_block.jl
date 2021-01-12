@@ -98,6 +98,9 @@ let
         Nr = EToN0[1, :] * (2^(lvl - 1))
         Ns = EToN0[2, :] * (2^(lvl - 1))
 
+        @show Nr
+        @show Ns
+
         # Dictionary to store the operators
         OPTYPE = typeof(locoperator(2, 8, 8))
         lop = Dict{Int64,OPTYPE}() # Be extra careful about the () here
@@ -106,20 +109,28 @@ let
         (y1, y2, y3, y4) = verts[2,:]
 
         # xt = ?
-        # xt(r,s) = r
+        # function xt(r,s)
+        #     return r
+        # end
+        xt = (r,s) -> (r, ones(size(r)), zeros(size(r)))
         # yt = ?
-        # yt(r,s) = s
+        # function yt(r,s)
+        #     return s
+        # end
+        yt = (r,s) -> (s,zeros(size(s)), ones(size(s)))
         
         # create metrics
-        metrics = create_metrics(SBPp, Nr, Ns, xt, yt) # not quite sure about this part
+        metrics = create_metrics(SBPp, Nr[1], Ns[1], xt, yt) # not quite sure about this part
+        println("Metrics created successfully")
 
         # create local operator
         LFtoB = [BC_DIRICHLET,BC_DIRICHLET,BC_NEUMANN,BC_NEUMANN]
-        lop = locoperator(SBPp, Nr, Ns, metrics, LFtoB) # this function might not be correct 
+        lop = locoperator(SBPp, Nr[1], Ns[1], metrics, LFtoB) # this function might not be correct 
+        println("lop created successfully")
 
         # obtain M 
         factorization = (x) -> cholesky(Symmetric(x))
-        M = SBPLocalOperator1(lop, Nr, Ns, factorization)
+        M = SBPLocalOperator1(lop, Nr[1], Ns[1], factorization)
 
         # obtain g
 
