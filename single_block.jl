@@ -35,7 +35,7 @@ let
     Lx = maximum(verts[1,:])
     Ly = maximum(abs.(verts[2,:]))
     (kx, ky) = (2 * π / Lx, 4 * π / Ly)
-    vex(x, y, e) = begin
+    vex(x, y, e) = begin # I only have one element. no need for EToDomain[e]
         if EToDomain[e] == 1
             return cos.(kx * x) .* cosh.(ky * y)
         elseif EToDomain[e] == 2
@@ -140,10 +140,18 @@ let
         # M = locoperator(SBPp, Nr[1],Ns[1],metrics,LFtoB)
 
         # obtain g
-        
-
-
-
+        # source function
+        g = zeros((Nr[1]+1) * (Ns[1]+1))
+        gδe = zeros((Nr[1]+1) * (Ns[1] + 1))
+        e = 1
+        source = (x, y, e) -> (-vex_xx(x, y, e)  - vex_yy(x, y, e))
+        # locbcarray to implement
+        locbcarray!(ge, gδe, lop, LFToB, bc_Dirichlet, bc_Neumann, in_jump,
+                     bcargs=())
+        locsourcearray!((g),source,lop[e],e)
+        # @show g
+        @show M
+        M.F[e] \ g
 
 
     end
