@@ -37,54 +37,60 @@ let
     (kx, ky) = (2 * π / Lx, 4 * π / Ly)
     vex(x, y, e) = begin # I only have one element. no need for EToDomain[e]
         if EToDomain[e] == 1
-            return cos.(kx * x) .* cosh.(ky * y)
-        elseif EToDomain[e] == 2
-            return 10 .+ cos.(kx * x) .* cosh.(ky * y)
+            # return cos.(kx * x) .* cosh.(ky * y)
+            return x
+        # elseif EToDomain[e] == 2
+        #     return 10 .+ cos.(kx * x) .* cosh.(ky * y)
         else
             error("invalid block")
         end
     end
     vex_x(x, y, e) = begin
         if EToDomain[e] == 1
-            return -kx * sin.(kx * x) .* cosh.(ky * y)
-        elseif EToDomain[e] == 2
-            return -kx * sin.(kx * x) .* cosh.(ky * y)
+            # return -kx * sin.(kx * x) .* cosh.(ky * y)
+            return 1
+        # elseif EToDomain[e] == 2
+        #     return -kx * sin.(kx * x) .* cosh.(ky * y)
         else
             error("invalid block")
         end
     end
     vex_y(x, y, e) = begin
         if EToDomain[e] == 1
-            return ky * cos.(kx * x) .* sinh.(ky * y)
-        elseif EToDomain[e] == 2
-            return ky * cos.(kx * x) .* sinh.(ky * y)
+            # return ky * cos.(kx * x) .* sinh.(ky * y)
+            return 0
+        # elseif EToDomain[e] == 2
+        #     return ky * cos.(kx * x) .* sinh.(ky * y)
         else
             error("invalid block")
         end
     end
     vex_xx(x, y, e) = begin
         if EToDomain[e] == 1
-            return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
-        elseif EToDomain[e] == 2
-            return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
+            # return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
+            return 0
+        # elseif EToDomain[e] == 2
+        #     return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
         else
             error("invalid block")
         end
     end
     vex_xy(x, y, e) = begin
         if EToDomain[e] == 1
-            return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
-        elseif EToDomain[e] == 2
-            return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
+            # return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
+            return 0
+        # elseif EToDomain[e] == 2
+        #     return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
         else
             error("invalid block")
         end
     end
     vex_yy(x, y, e) = begin
         if EToDomain[e] == 1
-            return ky^2 * cos.(kx * x) .* cosh.(ky * y)
-        elseif EToDomain[e] == 2
-            return ky^2 * cos.(kx * x) .* cosh.(ky * y)
+            # return ky^2 * cos.(kx * x) .* cosh.(ky * y)
+            return 0
+        # elseif EToDomain[e] == 2
+        #     return ky^2 * cos.(kx * x) .* cosh.(ky * y)
         else
             error("invalid block")
         end
@@ -112,12 +118,13 @@ let
         # function xt(r,s)
         #     return r
         # end
-        xt = (r,s) -> (r, ones(size(r)), zeros(size(r)))
+        xt = (r,s) -> (0.5*r, ones(size(r)), zeros(size(r)))
+        # xt = (r,s) -> (r, ones(size(r)), zeros(size(r))) # maybe the mapping is wrong
         # yt = ?
         # function yt(r,s)
         #     return s
         # end
-        yt = (r,s) -> (s,zeros(size(s)), ones(size(s)))
+        yt = (r,s) -> (0.5*s,zeros(size(s)), ones(size(s)))
         
         # create metrics
         metrics = create_metrics(SBPp, Nr[1], Ns[1], xt, yt) # not quite sure about this part
@@ -141,18 +148,40 @@ let
 
         # obtain g
         # source function
-        g = zeros((Nr[1]+1) * (Ns[1]+1))
+        ge = zeros((Nr[1]+1) * (Ns[1]+1))
         gδe = zeros((Nr[1]+1) * (Ns[1] + 1))
         e = 1
+        δ = 1
         source = (x, y, e) -> (-vex_xx(x, y, e)  - vex_yy(x, y, e))
         # locbcarray to implement
-        locbcarray!(ge, gδe, lop, LFToB, bc_Dirichlet, bc_Neumann, in_jump,
-                     bcargs=())
-        locsourcearray!((g),source,lop[e],e)
+
+        # boundary conditions
+        bc_Dirichlet = (lf, x, y, e, δ) -> vex(x, y, e)
+        bc_Neumann   = (lf, x, y, nx, ny, e, δ) -> (nx .* vex_x(x, y, e)
+                                                + ny .* vex_y(x, y, e))
+        in_jump      = (lf, x, y, e, δ) -> begin
+            f = EToF[lf, e]
+            if EToS[lf, e] == 1
+                if EToO[lf, e]
+                    return -δ[FToδstarts[f]:(FToδstarts[f + 1] - 1)]
+                else
+                    error("shouldn't get here")
+                end
+            else
+                if EToO[lf, e]
+                    return  δ[FToδstarts[f]:(FToδstarts[f + 1] - 1)]
+                else
+                    return  δ[(FToδstarts[f + 1] - 1):-1:FToδstarts[f]]
+                end
+            end
+        end
+
+        locbcarray!(ge, gδe, lop[e], LFtoB, bc_Dirichlet, bc_Neumann, in_jump,(e,δ))
+        locsourcearray!((ge),source,lop[e],e)
         # @show g
         @show M
-        M.F[e] \ g
-
-
+        numerical_solution = M.F[e] \ ge
+        exact_solution = vex(lop[e].coord[1], lop[e].coord[2],e)
+        err = norm(numerical_solution - exact_solution[:])
     end
 end
