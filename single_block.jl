@@ -4,7 +4,7 @@ let
     SBPp   = 6
 
     # number of levels
-    num_of_levels = 1 # no mesh refinement right now
+    num_of_levels = 2 # no mesh refinement right now
 
     # mesh file side set type to actually boundary condition type
     bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
@@ -48,7 +48,7 @@ let
     vex_x(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx * sin.(kx * x) .* cosh.(ky * y)
-            return 1
+            return ones(size(x)[1])
         # elseif EToDomain[e] == 2
         #     return -kx * sin.(kx * x) .* cosh.(ky * y)
         else
@@ -58,7 +58,7 @@ let
     vex_y(x, y, e) = begin
         if EToDomain[e] == 1
             # return ky * cos.(kx * x) .* sinh.(ky * y)
-            return 0
+            return zeros(size(x)[1])
         # elseif EToDomain[e] == 2
         #     return ky * cos.(kx * x) .* sinh.(ky * y)
         else
@@ -68,7 +68,7 @@ let
     vex_xx(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
-            return 0
+            return zeros(size(x)[1])
         # elseif EToDomain[e] == 2
         #     return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
         else
@@ -78,7 +78,7 @@ let
     vex_xy(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
-            return 0
+            return zeros(size(x)[1])
         # elseif EToDomain[e] == 2
         #     return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
         else
@@ -88,7 +88,7 @@ let
     vex_yy(x, y, e) = begin
         if EToDomain[e] == 1
             # return ky^2 * cos.(kx * x) .* cosh.(ky * y)
-            return 0
+            return zeros(size(x)[1])
         # elseif EToDomain[e] == 2
         #     return ky^2 * cos.(kx * x) .* cosh.(ky * y)
         else
