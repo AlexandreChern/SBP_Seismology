@@ -4,7 +4,7 @@ let
     SBPp   = 6
 
     # number of levels
-    num_of_levels = 2 # no mesh refinement right now
+    num_of_levels = 6 # no mesh refinement right now
 
     # mesh file side set type to actually boundary condition type
     bc_map = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN,
@@ -32,13 +32,16 @@ let
 
 
     # Exact solution
-    Lx = maximum(verts[1,:])
-    Ly = maximum(abs.(verts[2,:]))
+    # Lx = maximum(verts[1,:])
+    # Ly = maximum(abs.(verts[2,:]))
+    Lx = 80
+    Ly = 80
     (kx, ky) = (2 * π / Lx, 4 * π / Ly)
     vex(x, y, e) = begin # I only have one element. no need for EToDomain[e]
         if EToDomain[e] == 1
             # return cos.(kx * x) .* cosh.(ky * y)
-            return x
+            # return x
+            return cos.(kx * x) .* cos.(ky * y)
         # elseif EToDomain[e] == 2
         #     return 10 .+ cos.(kx * x) .* cosh.(ky * y)
         else
@@ -48,7 +51,8 @@ let
     vex_x(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx * sin.(kx * x) .* cosh.(ky * y)
-            return ones(size(x)[1])
+            # return ones(size(x)[1])
+            return - kx * sin.(kx * x) .* cos.(ky * y)
         # elseif EToDomain[e] == 2
         #     return -kx * sin.(kx * x) .* cosh.(ky * y)
         else
@@ -58,7 +62,8 @@ let
     vex_y(x, y, e) = begin
         if EToDomain[e] == 1
             # return ky * cos.(kx * x) .* sinh.(ky * y)
-            return zeros(size(x)[1])
+            # return zeros(size(x)[1])
+            return - ky * cos.(kx * x) .* sin.(ky * y)
         # elseif EToDomain[e] == 2
         #     return ky * cos.(kx * x) .* sinh.(ky * y)
         else
@@ -68,7 +73,8 @@ let
     vex_xx(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
-            return zeros(size(x)[1])
+            # return zeros(size(x)[1])
+            return - kx^2 * cos.(kx * x) .* cos.(ky * y)
         # elseif EToDomain[e] == 2
         #     return -kx^2 * cos.(kx * x) .* cosh.(ky * y)
         else
@@ -78,7 +84,8 @@ let
     vex_xy(x, y, e) = begin
         if EToDomain[e] == 1
             # return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
-            return zeros(size(x)[1])
+            # return zeros(size(x)[1])
+            return kx * ky * sin.(kx * x) .* sin.(ky * y)
         # elseif EToDomain[e] == 2
         #     return -kx * ky * sin.(kx * x) .* sinh.(ky * y)
         else
@@ -88,7 +95,8 @@ let
     vex_yy(x, y, e) = begin
         if EToDomain[e] == 1
             # return ky^2 * cos.(kx * x) .* cosh.(ky * y)
-            return zeros(size(x)[1])
+            # return zeros(size(x)[1])
+            return - ky^2 * cos.(kx * x) .* cos.(ky * y)
         # elseif EToDomain[e] == 2
         #     return ky^2 * cos.(kx * x) .* cosh.(ky * y)
         else
@@ -118,17 +126,24 @@ let
         # function xt(r,s)
         #     return r
         # end
-        xt = (r,s) -> (0.5*r, ones(size(r)), zeros(size(r)))
+        # xt = (r,s) -> (0.5 * r.^3 .+ r, 1.5 .* r .* r .+ 1, zeros(size(r)))
+        el_x = 10 # set it to be infinity to have even spread
+        el_y = 10
+        # xt = (r,s) -> (el_x .* tan.(atan((Lx + 1)/el_x).* r)  .- 1, el_x .* sec.(atan((Lx + 1)/el_x).* r).^2 * atan((Lx + 1)/el_x) ,zeros(size(s)))
+        xt = (r,s) -> (el_x .* tan.(atan((Lx )/el_x).* (0.5*r .+ 0.5))  , el_x .* sec.(atan((Lx )/el_x).* (0.5*r .+ 0.5)).^2 * atan((Lx)/el_x) * 0.5 ,zeros(size(s)))
+        # yt = (r,s) -> (el_y .* tan.(atan((Ly + 1)/el_y).* s)  .- 1 , zeros(size(r)), el_y .* sec.(atan((Ly + 1)/el_y).*s) .^2 * atan((Ly + 1)/el_y) )
+        yt = (r,s) -> (el_y .* tan.(atan((Ly )/el_y).* (0.5*s .+ 0.5))  , zeros(size(r)), el_y .* sec.(atan((Ly )/el_y).*(0.5*s .+ 0.5)) .^2 * atan((Ly )/el_y) * 0.5 )
+
         # xt = (r,s) -> (r, ones(size(r)), zeros(size(r))) # maybe the mapping is wrong
         # yt = ?
         # function yt(r,s)
         #     return s
         # end
-        yt = (r,s) -> (0.5*s,zeros(size(s)), ones(size(s)))
+        # yt = (r,s) -> (0.5 * s.^3 .+ s,zeros(size(s)), 1.5 .* s .* s .+ 1)
         
         # create metrics
         metrics = create_metrics(SBPp, Nr[1], Ns[1], xt, yt) # not quite sure about this part
-        println("Metrics created successfully")
+        # println("Metrics created successfully")
 
         # create local operator
         LFtoB = [BC_DIRICHLET,BC_DIRICHLET,BC_NEUMANN,BC_NEUMANN]
@@ -136,14 +151,14 @@ let
         lop[1] = locoperator(SBPp, Nr[1], Ns[1], metrics, LFtoB) # this function might not be correct
         # for locoperator() call with more elements, the length of lop is the number of the elements 
         # for locoperator() call with a single element, the length of lop is the length of the tuple. (how many items for a single elemet)
-        println("lop created successfully")
+        # println("lop created successfully")
         # @show typeof(lop)
         @show length(lop)
 
         # obtain M 
         factorization = (x) -> cholesky(Symmetric(x))
         M = SBPLocalOperator1(lop, Nr[1], Ns[1], factorization)
-        println("M created successfully")
+        # println("M created successfully")
         # M = locoperator(SBPp, Nr[1],Ns[1],metrics,LFtoB)
 
         # obtain g
@@ -179,9 +194,13 @@ let
         locbcarray!(ge, gδe, lop[e], LFtoB, bc_Dirichlet, bc_Neumann, in_jump,(e,δ))
         locsourcearray!((ge),source,lop[e],e)
         # @show g
-        @show M
+        # @show M
         numerical_solution = M.F[e] \ ge
         exact_solution = vex(lop[e].coord[1], lop[e].coord[2],e)
-        err = norm(numerical_solution - exact_solution[:])
+        diff = numerical_solution - exact_solution[:]
+        diff_matrix = reshape(numerical_solution,Ns[1]+1,Nr[1]+1)
+        err = sqrt(diff' * lop[1].JH * diff)
+        println("Err: $err")
+        println("LogErr: $(log(2,err))")
     end
 end
