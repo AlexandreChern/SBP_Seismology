@@ -1,5 +1,27 @@
 include("global_curved.jl")
 let
+
+    # setting parameters for FD Cycle
+    sim_years = 3000
+
+    Vp = 1e-9
+    ρ = 2.670
+    cs = 3.464
+    σn = 50
+    RSamin = 0.010
+    RSamax = 0.025
+    RSb = 0.015
+    RSDc = 0.008
+    RSf0 = 0.6
+    RSV0 = 1e-6
+    RSH1 = 15
+    RSH2 = 18
+
+    μshear = cs^2 * ρ
+    η = μshear / (2 * cs)
+
+
+
     # SBP interior order
     SBPp   = 6
 
@@ -196,11 +218,23 @@ let
         # @show g
         # @show M
         numerical_solution = M.F[e] \ ge
-        exact_solution = vex(lop[e].coord[1], lop[e].coord[2],e)
-        diff = numerical_solution - exact_solution[:]
-        diff_matrix = reshape(numerical_solution,Ns[1]+1,Nr[1]+1)
-        err = sqrt(diff' * lop[1].JH * diff)
-        println("Err: $err")
-        println("LogErr: $(log(2,err))")
+
+        odeparams = ( reject_step = [false],
+            Vp = Vp,
+            lop = lop,
+            EToDomain = EToDomain,
+            EToF = EToF,
+            EToV = EToV,
+            EToN0 = EToN0,
+            FToB = FToB,
+            FToδstarts = FToδstarts
+        )
+
+        # exact_solution = vex(lop[e].coord[1], lop[e].coord[2],e)
+        # diff = numerical_solution - exact_solution[:]
+        # diff_matrix = reshape(numerical_solution,Ns[1]+1,Nr[1]+1)
+        # err = sqrt(diff' * lop[1].JH * diff)
+        # println("Err: $err")
+        # println("LogErr: $(log(2,err))")
     end
 end
