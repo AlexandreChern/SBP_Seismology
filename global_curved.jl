@@ -973,3 +973,14 @@ function plot_blocks(lop)
     title!(plt, "mesh")
     display(plt)
 end
+
+
+function rateandstate(V, psi, σn, ϕ, η, a, V0)
+    Y = (1 ./ (2 .* V0)) .* exp.(psi ./ a)
+    f = a .* asinh.(V .* Y)
+    dfdV  = a .* (1 ./ sqrt.(1 + (V .* Y).^2)) .* Y
+  
+    g    = σn .* f    + η .* V - ϕ
+    dgdV = σn .* dfdV + η
+    (g, dgdV)
+end
