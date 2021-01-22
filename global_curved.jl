@@ -975,12 +975,16 @@ function plot_blocks(lop)
 end
 
 
-function rateandstate(V, psi, σn, ϕ, η, a, V0)
-    Y = (1 ./ (2 .* V0)) .* exp.(psi ./ a)
-    f = a .* asinh.(V .* Y)
-    dfdV  = a .* (1 ./ sqrt.(1 + (V .* Y).^2)) .* Y
-  
-    g    = σn .* f    + η .* V - ϕ
-    dgdV = σn .* dfdV + η
-    (g, dgdV)
+function a(z,a0,H,h,Wf,a_max)
+    if (0<=z<H)
+        return a0
+    if (z < H+h)
+        return a0 + (a_max - a0)*(z-H)/h
+    if (z < Wf)
+        return a_max
+end
+
+function rate_and_state(V,θ,a,b,f0,V0,L)
+    f = a*asin((V/(2*V0) * exp((f0 + b*ln(V0*θ)/L)/a)))
+    return f
 end
