@@ -40,16 +40,16 @@ function transfinite_blend(α1, α2, α3, α4, α1s, α2s, α3r, α4r, r, s)
 
     xr =  α2(s) / 2 - α1(s) / 2 +
         (1 .+ s) .* α4r(r) / 2 + (1 .- s) .* α3r(r) / 2 -
-      (+(1 .+ s) .* α2(1) +
+      (+ ( 1 .+ s ) .* α2(1) +
        -(1 .+ s) .* α1(1) +
-       +(1 .- s) .* α2(-1) +
+       + ( 1 .- s ) .* α2(-1) +
        -(1 .- s) .* α1(-1)) / 4
 
 
     xs = (1 .+ r) .* α2s(s) / 2 + (1 .- r) .* α1s(s) / 2 +
        α4(r) / 2 - α3(r) / 2 -
-      (+(1 .+ r) .* α2(1) +
-       +(1 .- r) .* α1(1) +
+      (+ ( 1 .+ r ) .* α2(1) +
+       + ( 1 .- r ) .* α1(1) +
        -(1 .+ r) .* α2(-1) +
        -(1 .- r) .* α1(-1)) / 4
 
@@ -451,9 +451,9 @@ function locoperator(p, Nr, Ns, metrics=create_metrics(p, Nr, Ns),
 
   # TODO: Fix minus sign (reverse of the paper)
     G1 = -(Is ⊗ er0T) * Sr0 - ((csr0 * Qs) ⊗ er0T)
-    G2 = +(Is ⊗ erNT) * SrN + ((csrN * Qs) ⊗ erNT)
+    G2 = + ( Is ⊗ erNT ) * SrN + ((csrN * Qs) ⊗ erNT)
     G3 = -(es0T ⊗ Ir) * Ss0 - (es0T ⊗ (crs0 * Qr))
-    G4 = +(esNT ⊗ Ir) * SsN + (esNT ⊗ (crsN * Qr))
+    G4 = + ( esNT ⊗ Ir ) * SsN + (esNT ⊗ (crsN * Qr))
 
     F1 = G1' - ((τ1 * H1) ⊗ er0)
     F2 = G2' - ((τ2 * H2) ⊗ erN)
@@ -521,7 +521,7 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
 
         @assert EToO[fm, em] && EToS[fm, em] == 1
         Fm = lop[em].F[fm]
-    # swap I and J to get transpose
+        # swap I and J to get transpose
         (Je, Ie, Ve) = findnz(Fm)
         IT = [IT; Ie .+ (FToλstarts[f] - 1)]
         JT = [JT; Je .+ (vstarts[em] - 1)]
@@ -529,7 +529,7 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
 
         @assert EToS[fp, ep] == 2
         Fp = lop[ep].F[fp]
-    # swap I and J to get transpose
+        # swap I and J to get transpose
         (Je, Ie, Ve) = findnz(Fp)
     # if element and face orientation do not match, then flip
         if EToO[fp, ep]
@@ -556,6 +556,61 @@ function gloλoperator(lop, vstarts, FToB, FToE, FToLF, EToO, EToS, Nr, Ns)
 end
 # }}}
 
+
+# {{{ locbcarray_mod!
+function locbcarray_mod!(ge, lop, LFToB, bc_Dirichlet, bc_Neumann,
+    bcargs=())
+    F = lop.F
+    (xf, yf) = lop.facecoord
+    Hf = lop.Hf
+    sJ = lop.sJ
+    nx = lop.nx
+    ny = lop.ny
+    τ = lop.τ
+    ge[:] .= 0
+    for lf = 1:4
+        if LFToB[lf] == BC_DIRICHLET
+        vf = bc_Dirichlet(lf, xf[lf], yf[lf], bcargs...)
+        elseif LFToB[lf] == BC_NEUMANN
+            gN = bc_Neumann(lf, xf[lf], yf[lf], nx[lf], ny[lf], bcargs...)
+            vf = sJ[lf] .* gN ./ diag(τ[lf])
+        elseif LFToB[lf] == BC_LOCKED_INTERFACE
+            continue # nothing to do here
+        else
+            error("invalid bc")
+        end
+    ge[:] -= F[lf] * vf
+    end
+end
+# }}}
+
+
+function locbcarray_mod!(ge, lop, LFToB, bc_Dirichlet, bc_Neumann,
+                     bcargs=())
+  F = lop.F
+  (xf, yf) = lop.facecoord
+  Hf = lop.Hf
+  sJ = lop.sJ
+  nx = lop.nx
+  ny = lop.ny
+  τ = lop.τ
+  ge[:] .= 0
+  for lf = 1:4
+    if LFToB[lf] == BC_DIRICHLET
+      vf = bc_Dirichlet(lf, xf[lf], yf[lf], bcargs...)
+    elseif LFToB[lf] == BC_NEUMANN
+      gN = bc_Neumann(lf, xf[lf], yf[lf], nx[lf], ny[lf], bcargs...)
+      vf = sJ[lf] .* gN ./ diag(τ[lf])
+    elseif LFToB[lf] == BC_LOCKED_INTERFACE
+      continue # nothing to do here
+    else
+      error("invalid bc")
+    end
+    ge[:] -= F[lf] * vf
+  end
+end
+
+
 # {{{ volbcarray()
 function locbcarray!(ge, gδe, lop, LFToB, bc_Dirichlet, bc_Neumann, in_jump,
                      bcargs=())
@@ -580,12 +635,22 @@ function locbcarray!(ge, gδe, lop, LFToB, bc_Dirichlet, bc_Neumann, in_jump,
             vf = in_jump(lf, xf[lf], yf[lf], bcargs...) / 2
             gδe[lf][:] -= Hf[lf] * τ[lf] * vf
         else
-            error("invalid bc")
-        end
+        error("invalid bc")
+end
         ge[:] -= F[lf] * vf
     end
 end
 # }}}
+
+#{{{ computetraction
+function computetraction_mod(lop, lf, u, δ)
+    HfI_FT = lop.HfI_FT[lf]
+    τf = lop.τ[lf]
+    sJ = lop.sJ[lf]
+  
+  
+    return (HfI_FT * u + τf * (δ .- δ / 2)) ./ sJ
+  end
 
 
 # {{{ volsourcearray()
@@ -744,7 +809,7 @@ end
 # {{{ Constructor for inp files
 function read_inp_2d(T, S, filename::String; bc_map=1:10000)
   # {{{ Read in the file
-    f = try
+        f = try
         open(filename)
     catch
         error("InpRead cannot open \"$filename\" ")
@@ -770,7 +835,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
         (node_num, node_x, node_y, node_z) = try
             (parse(T, node_data[1]),
        parse(S, node_data[2]),
-       parse(S, node_data[3]),
+        parse(S, node_data[3]),
        parse(S, node_data[4]))
         catch
             error("cannot parse line $l: \"$(lines[l])\" ")
@@ -793,7 +858,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
     while linenum > 0
         for l = linenum .+ (1:length(lines))
             occursin(r"^\s*[0-9]*\s*,.*", lines[l]) ? num_elm += 1 : break
-        end
+    end
         linenum = SeekToSubstring(lines, str; first=linenum + 1)
     end
     num_elm > 0 || error("did not find any element")
@@ -822,7 +887,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
         end
         linenum = SeekToSubstring(lines, str; first=linenum + 1)
     end
-  # }}}
+    # }}}
 
   # {{{ Determine connectivity
     EToF = fill(T(0), 4, num_elm)
@@ -867,7 +932,7 @@ function read_inp_2d(T, S, filename::String; bc_map=1:10000)
             error("cannot parse line $linenum: \"$(lines[linenum])\" ")
         end
         bc = bc_map[bc]
-        face = inp_to_zorder[face]
+            face = inp_to_zorder[face]
         for l = linenum + 1:length(lines)
             if !occursin(r"^\s*[0-9]+", lines[l])
                 break
@@ -903,7 +968,7 @@ function SeekToSubstring(lines, substring; first=1)
     end
     return -1
 end
-
+    
 # }}}
 
 function plot_connectivity(verts, EToV)
@@ -975,16 +1040,16 @@ function plot_blocks(lop)
 end
 
 
-function a(z,a0,H,h,Wf,a_max)
-    if (0<=z<H)
-        return a0
-    if (z < H+h)
-        return a0 + (a_max - a0)*(z-H)/h
-    if (z < Wf)
-        return a_max
-end
+# function a(z,a0,H,h,Wf,a_max)
+#     if (0<=z<H)
+#         return a0
+#     if (z < H+h)
+#         return a0 + (a_max - a0)*(z-H)/h
+#     if (z < Wf)
+#         return a_max
+# end
 
-function rate_and_state(V,θ,a,b,f0,V0,L)
-    f = a*asin((V/(2*V0) * exp((f0 + b*ln(V0*θ)/L)/a)))
-    return f
-end
+# function rate_and_state(V,θ,a,b,f0,V0,L)
+#     f = a*asin((V/(2*V0) * exp((f0 + b*ln(V0*θ)/L)/a)))
+#     return f
+# end
