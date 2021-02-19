@@ -102,6 +102,7 @@ end
 struct ODE_results
    t_list::Array{Any,1}
    V_list::Array{Any,1}
+   δ_list::Array{Any,1}
 end
 
 function saveslip(ψδ,t,i,ODEresults,p,base_name="",tdump=100)
@@ -111,14 +112,26 @@ function saveslip(ψδ,t,i,ODEresults,p,base_name="",tdump=100)
     if isdefined(i,:fsallast)
       δNp = div(length(ψδ),2)
       dψV = i.fsallast
+      ψ = @view dψV[1:δNp]
       V = @view dψV[δNp .+ (1:δNp)]
       Vmax = maximum(abs.(extrema(V)))
+      δ = @view ψδ[δNp .+ (1:δNp)]
       push!(ODEresults.t_list,t)
       push!(ODEresults.V_list,Vmax)
+      push!(ODEresults.δ_list,δ)
+      stations = range(1,stop=δNp,step=div(δNp,25))
       open("$(base_name)V.dat","w") do f
         write(f,"t V \n")
       for n = 1:length(ODEresults.t_list)
-        write(f, "$(ODEresults.t_list[n]) $(ODEresults.V_list[n]) \n")
+        # write(f, "$(ODEresults.t_list[n]) $(ODEresults.V_list[n]) \n")
+        write(f, "$(ODEresults.t_list[n]) $(log10(ODEresults.V_list[n])) $(ODEresults.δ_list[n][2])")
+        # for i in 1:div(length(V)+1,2)
+        #   write(f,"$(ODEresults.δ_list[n][2*i-1])")
+        # end
+        for i in stations
+            write(f," $(ODEresults.δ_list[n][i])")
+        end
+        write(f,"\n")
       end
     end
     end
