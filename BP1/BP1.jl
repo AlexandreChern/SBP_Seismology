@@ -24,7 +24,8 @@ function main()
 
 
   # N + 1 is the number of grid points in each dimension
-  N = 200
+  # N = 200
+  N = 100
   δNp = N + 1
 
   # SBP interior order
