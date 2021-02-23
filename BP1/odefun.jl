@@ -122,7 +122,7 @@ function saveslip(ψδ,t,i,ODEresults,p,base_name="",tdump=100)
       push!(ODEresults.V_list,Vmax)
       push!(ODEresults.δ_list,copy(δ))
       stations = Integer.(range(1,stop=δNp,length=81))
-      @show stations
+      # @show stations
       # @show typeof(ODEresults.δ_list)
       # if (length(ODEresults.t_list) == 10)
       if (t == sim_years * year_seconds)
