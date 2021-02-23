@@ -121,12 +121,18 @@ function saveslip(ψδ,t,i,ODEresults,p,base_name="",tdump=100)
       push!(ODEresults.t_list,t)
       push!(ODEresults.V_list,Vmax)
       push!(ODEresults.δ_list,copy(δ))
-      stations = range(1,stop=δNp,step=div(δNp,25))
+      stations = Integer.(range(1,stop=δNp,length=81))
+      @show stations
       # @show typeof(ODEresults.δ_list)
-      # if (length(ODEresults.t_list) == 3)
+      # if (length(ODEresults.t_list) == 10)
       if (t == sim_years * year_seconds)
         open("$(base_name)V.dat","w") do f
-          write(f,"t V \n")
+          write(f,"t V ")
+          for i in stations
+            # write(f,"$(stations[i])")
+            write(f,"$((i-1)/(δNp-1)*40000) ")
+          end
+          write(f,"\n")
         for n = 1:length(ODEresults.t_list)
         # for n = 1:3
           # write(f, "$(ODEresults.t_list[n]) $(ODEresults.V_list[n]) \n")
@@ -136,7 +142,7 @@ function saveslip(ψδ,t,i,ODEresults,p,base_name="",tdump=100)
           #   write(f,"$(ODEresults.δ_list[n][2*i-1])")
           # end
 
-          for i in stations
+          for i in Integer.(range(1,81,length=81))
               write(f," $(ODEresults.δ_list[n][i])")
           end
           write(f,"\n")

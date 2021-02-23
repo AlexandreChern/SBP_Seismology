@@ -2,7 +2,7 @@ include("global_curved.jl")
 let
 
     # setting parameters for FD Cycle
-    sim_years = 3000
+    sim_years = 10000
 
     Vp = 1e-9
     ρ = 2.670
