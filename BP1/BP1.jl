@@ -94,6 +94,7 @@ function main()
      u = M.F[e] \ ge
 
   Δτ = zeros(N+1)
+  τ = zeros(N+1)
 
   # Assemble fault variables/data
   RSa = zeros(N+1)
@@ -124,7 +125,57 @@ function main()
   #pyplot()
   #display(plot(yf, δ))
   #sleep(1)
+  # @show yf
+  stations = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30]
+  # @show stations
+  # numstations = length(stations)
+  # station_ind = zeros(Int64, numstations)
+  @show size(yf)
+  @show size(stations)
 
+  function find_station_index(stations,grid_points)
+    numstations = length(stations)
+    @show numstations
+    station_ind = zeros(numstations)
+    @show station_ind
+    for i in range(1,stop=numstations)
+      @show argmin(abs.(grid_points .- stations[i]))
+        station_ind[i] = argmin(abs.(grid_points .- stations[i]))
+        # station_ind[i] = abs.(grid_points .- stations[i])[1]
+    end
+    return Integer.(station_ind)
+  end  
+
+  station_indices = find_station_index(stations,yf)
+  @show station_indices
+  # station_face = zeros(Int64, numstations)
+  # for s = 1:numstations
+  #   n = station_ind[s] = argmin(abs.(fault_y-stations[s]))
+  #   f = station_face[s] = findlast((m) -> m <= n, FToδstarts)
+  #   println((stations[s], fault_y[station_ind[s]], FToδstarts[f] <= n < FToδstarts[f+1]))
+  # end
+  # station_t = zeros(Float64, ceil(Int64, sim_years)*10)
+  # station_V = zeros(Float64, numstations, ceil(Int64, sim_years)*10)
+  # station_τ = zeros(Float64, numstations, ceil(Int64, sim_years)*10)
+  # station_θ = zeros(Float64, numstations, ceil(Int64, sim_years)*10)
+  # station_δ = zeros(Float64, numstations, ceil(Int64, sim_years)*10)
+
+  # stations_locations = [0 0
+  #                       0 -2.5
+  #                       0 -5
+  #                       0 -7.5
+  #                       0 -10
+  #                       0 -12.5
+  #                       0 -15
+  #                       0 -17.5
+  #                       0 -20
+  #                       0 -25
+  #                       0 -30
+  #                      ]
+  # y_loc = stations_locations[:,2]
+  # y_ind = 
+
+  
 
   # set up parameters sent to right hand side
   odeparam = (reject_step = [false],
@@ -133,6 +184,7 @@ function main()
               F = M.F[e],
               u=u,
               Δτ = Δτ,
+              τ = τ,
               ge = ge,
               μshear=μshear,
               RSa=RSa,
@@ -141,6 +193,7 @@ function main()
               η=η,
               RSV0=RSV0,
               τz0=τz0,
+              # τn = τz0,
               RSDc=RSDc,
               RSf0=RSf0,
               LFtoB = LFtoB
@@ -158,9 +211,9 @@ function main()
     return false
   end
 
-  ODEresults = ODE_results([],[],[])
+  ODEresults = ODE_results([],[],[],Dict(i=>[] for i=1:11))
 
-  cb = SavingCallback((ψδ,t,i)->saveslip(ψδ,t,i,ODEresults,odeparam,"BP1_",10*year_seconds),SavedValues(Float64,Float64))
+  cb = SavingCallback((ψδ,t,i)->saveslip(ψδ,t,i,ODEresults,yf,stations,station_indices,odeparam,"BP1_",10*year_seconds),SavedValues(Float64,Float64))
 
   sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=year_seconds,
               atol = 1e-5, rtol = 1e-3, save_everystep=true,
