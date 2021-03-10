@@ -1,5 +1,5 @@
 const year_seconds = 31556926
-const sim_years = 300
+const sim_years = 3000
 
 # using OrdinaryDiffEq
 # using DiffEqCallbacks
@@ -157,7 +157,7 @@ function saveslip(ψδ,t,i,ODEresults,yf,stations,station_indices,p,base_name=""
       # push!(ODEresults.stations[2],V[station_indices[2]])
       for i =1:11
         # @show p.τ[station_indices[i]]
-        push!(ODEresults.stations[i],[V[station_indices[i]],p.τ[station_indices[i]],p.RSDc * exp((ψ[station_indices[i]] - p.RSf0) / p.RSb) /
+        push!(ODEresults.stations[i],[V[station_indices[i]],p.τ[station_indices[i]] - p.η * V[station_indices[i]], p.RSDc * exp((ψ[station_indices[i]] - p.RSf0) / p.RSb) /
         p.RSV0])
       end
       # stations = Integer.(range(1,stop=δNp,length=81))

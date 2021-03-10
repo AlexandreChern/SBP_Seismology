@@ -3,7 +3,7 @@ include("odefun.jl")
 using Plots
 
 function main()
-  sim_years = 300.
+  sim_years = 3000.
 
   Vp = 1e-9 # plate rate
   ρ = 2.670
