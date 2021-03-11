@@ -126,7 +126,7 @@ function main()
   #display(plot(yf, δ))
   #sleep(1)
   # @show yf
-  stations = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30]
+  stations = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30, 35]
   # @show stations
   # numstations = length(stations)
   # station_ind = zeros(Int64, numstations)
